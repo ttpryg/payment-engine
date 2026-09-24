@@ -1,0 +1,37 @@
+{
+    "name": "ttpryg/payment-engine",
+    "description": "Production-ready, framework-agnostic PHP 8.1+ Payment Engine with generic payable/payer references, gateway abstraction, idempotent webhook processing, and append-only audit trail.",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Toto",
+            "email": "totoprayogo1916@gmail.com"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "psr/event-dispatcher": "^1.0",
+        "ttpryg/event-dispatcher": "^1.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0",
+        "rector/rector": "^2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Ttpryg\\PaymentEngine\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Ttpryg\\PaymentEngine\\Tests\\": "tests/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true
+    },
+    "minimum-stability": "stable"
+}

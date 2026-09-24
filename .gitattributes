@@ -1,0 +1,19 @@
+# Set default behavior to automatically handle line endings.
+* text=auto eol=lf
+*.php text eol=lf
+*.sql text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.xml text eol=lf
+*.md text eol=lf
+
+# Exclude unnecessary dev/testing files from composer export archives
+/.docker export-ignore
+/.github export-ignore
+/tests export-ignore
+/.gitattributes export-ignore
+/.gitignore export-ignore
+/docker-compose.yml export-ignore
+/phpunit.xml export-ignore
+/rector.php export-ignore

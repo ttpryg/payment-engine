@@ -1,0 +1,12 @@
+/vendor/
+/.phpunit.cache/
+.phpunit.result.cache
+/.phpstan.cache/
+/.rector.cache/
+.env
+.env.local
+*.log
+.DS_Store
+Thumbs.db
+/.idea/
+/.vscode/
