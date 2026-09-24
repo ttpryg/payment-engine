@@ -30,6 +30,7 @@ class MemoryPaymentAttemptRepository implements PaymentAttemptRepositoryInterfac
                 $result[] = $attempt;
             }
         }
+
         return $result;
     }
 
@@ -40,6 +41,7 @@ class MemoryPaymentAttemptRepository implements PaymentAttemptRepositoryInterfac
                 return $attempt;
             }
         }
+
         return null;
     }
 }

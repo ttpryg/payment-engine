@@ -25,6 +25,7 @@ class MemoryPaymentHistoryRepository implements PaymentHistoryRepositoryInterfac
                 $result[] = $history;
             }
         }
+
         return $result;
     }
 }

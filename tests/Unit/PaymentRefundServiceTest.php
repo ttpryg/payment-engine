@@ -24,21 +24,25 @@ use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 class PaymentRefundServiceTest extends TestCase
 {
     private MemoryPaymentRepository $paymentRepo;
+
     private MemoryPaymentRefundRepository $refundRepo;
+
     private MemoryPaymentHistoryRepository $historyRepo;
+
     private ListenerProvider $listenerProvider;
+
     private PaymentRefundService $refundService;
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository();
-        $this->refundRepo = new MemoryPaymentRefundRepository();
-        $this->historyRepo = new MemoryPaymentHistoryRepository();
+        $this->paymentRepo = new MemoryPaymentRepository;
+        $this->refundRepo = new MemoryPaymentRefundRepository;
+        $this->historyRepo = new MemoryPaymentHistoryRepository;
 
-        $gatewayManager = new GatewayManager();
+        $gatewayManager = new GatewayManager;
         $gatewayManager->register(new MockPaymentGateway('mock'));
 
-        $this->listenerProvider = new ListenerProvider();
+        $this->listenerProvider = new ListenerProvider;
         $dispatcher = new EventDispatcher($this->listenerProvider);
 
         $this->refundService = new PaymentRefundService(
@@ -50,7 +54,7 @@ class PaymentRefundServiceTest extends TestCase
         );
     }
 
-    public function testPartialAndFullRefundLifecycle(): void
+    public function test_partial_and_full_refund_lifecycle(): void
     {
         $partialEventFired = false;
         $fullEventFired = false;
@@ -93,7 +97,7 @@ class PaymentRefundServiceTest extends TestCase
         $this->assertCount(2, $allRefunds);
     }
 
-    public function testRefundExceedingPaidAmountThrowsException(): void
+    public function test_refund_exceeding_paid_amount_throws_exception(): void
     {
         $payment = new Payment(
             id: 'pay-refund-2',

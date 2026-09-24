@@ -20,9 +20,10 @@ class GatewayManager
     public function get(string $name): PaymentGatewayInterface
     {
         $key = strtolower($name);
-        if (!isset($this->gateways[$key])) {
+        if (! isset($this->gateways[$key])) {
             throw GatewayNotFoundException::forName($name);
         }
+
         return $this->gateways[$key];
     }
 

@@ -29,6 +29,7 @@ class MemoryWebhookEventRepository implements WebhookEventRepositoryInterface
                 return $event;
             }
         }
+
         return null;
     }
 
@@ -39,6 +40,7 @@ class MemoryWebhookEventRepository implements WebhookEventRepositoryInterface
                 return $event;
             }
         }
+
         return null;
     }
 }

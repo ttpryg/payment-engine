@@ -19,6 +19,9 @@ COPY .docker/php/php.ini /usr/local/etc/php/php.ini
 RUN useradd -o -u 1000 -g www-data -m developer || true
 RUN chown -R developer:www-data /var/www/html
 
+# Set git config to avoid "detected dubious ownership" error
+RUN git config --global --add safe.directory /var/www/html
+
 USER developer
 
 EXPOSE 9000

@@ -24,6 +24,6 @@ class PaymentAttempt
         public ?DateTimeImmutable $createdAt = null
     ) {
         $this->status = is_string($status) ? AttemptStatus::from($status) : $status;
-        $this->createdAt = $createdAt ?? new DateTimeImmutable();
+        $this->createdAt = $createdAt ?? new DateTimeImmutable;
     }
 }

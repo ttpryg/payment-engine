@@ -21,18 +21,22 @@ use Ttpryg\PaymentEngine\ValueObjects\PayerReference;
 class PaymentServiceTest extends TestCase
 {
     private MemoryPaymentRepository $paymentRepo;
+
     private MemoryPaymentAttemptRepository $attemptRepo;
+
     private MemoryPaymentHistoryRepository $historyRepo;
+
     private GatewayManager $gatewayManager;
+
     private PaymentService $paymentService;
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository();
-        $this->attemptRepo = new MemoryPaymentAttemptRepository();
-        $this->historyRepo = new MemoryPaymentHistoryRepository();
+        $this->paymentRepo = new MemoryPaymentRepository;
+        $this->attemptRepo = new MemoryPaymentAttemptRepository;
+        $this->historyRepo = new MemoryPaymentHistoryRepository;
 
-        $this->gatewayManager = new GatewayManager();
+        $this->gatewayManager = new GatewayManager;
         $this->gatewayManager->register(new MockPaymentGateway('mock'));
         $this->gatewayManager->register(new ManualTransferGateway('manual'));
 
@@ -47,7 +51,7 @@ class PaymentServiceTest extends TestCase
         );
     }
 
-    public function testCreatePaymentWithMockGatewayAndAttempts(): void
+    public function test_create_payment_with_mock_gateway_and_attempts(): void
     {
         $payment = $this->paymentService->createPayment(
             id: 'pay-001',
@@ -76,7 +80,7 @@ class PaymentServiceTest extends TestCase
         $this->assertCount(1, $histories);
     }
 
-    public function testGetPaymentsByPayableAndPayer(): void
+    public function test_get_payments_by_payable_and_payer(): void
     {
         $this->paymentService->createPayment(
             id: 'pay-002',

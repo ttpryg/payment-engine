@@ -20,6 +20,7 @@ final class Money
     public function add(Money $other): self
     {
         $this->ensureSameCurrency($other);
+
         return new self($this->amount + $other->amount, $this->currency);
     }
 
@@ -30,6 +31,7 @@ final class Money
         if ($result < 0) {
             throw new InvalidArgumentException('Subtraction results in negative money amount.');
         }
+
         return new self($result, $this->currency);
     }
 
@@ -38,6 +40,7 @@ final class Money
         if ($multiplier < 0) {
             throw new InvalidArgumentException('Multiplier cannot be negative.');
         }
+
         return new self((int) round($this->amount * $multiplier), $this->currency);
     }
 
@@ -49,24 +52,28 @@ final class Money
     public function isGreaterThan(Money $other): bool
     {
         $this->ensureSameCurrency($other);
+
         return $this->amount > $other->amount;
     }
 
     public function isGreaterThanOrEqual(Money $other): bool
     {
         $this->ensureSameCurrency($other);
+
         return $this->amount >= $other->amount;
     }
 
     public function isLessThan(Money $other): bool
     {
         $this->ensureSameCurrency($other);
+
         return $this->amount < $other->amount;
     }
 
     public function isLessThanOrEqual(Money $other): bool
     {
         $this->ensureSameCurrency($other);
+
         return $this->amount <= $other->amount;
     }
 

@@ -20,8 +20,8 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
         $existing = $this->findById($refund->id);
 
         $sql = $existing instanceof PaymentRefund
-            ? "UPDATE payment_refunds SET payment_id = :payment_id, refund_number = :refund_number, amount = :amount, currency = :currency, reason = :reason, status = :status, gateway_refund_id = :gateway_refund_id, actor_type = :actor_type, actor_id = :actor_id WHERE id = :id"
-            : "INSERT INTO payment_refunds (id, payment_id, refund_number, amount, currency, reason, status, gateway_refund_id, actor_type, actor_id, created_at) VALUES (:id, :payment_id, :refund_number, :amount, :currency, :reason, :status, :gateway_refund_id, :actor_type, :actor_id, :created_at)";
+            ? 'UPDATE payment_refunds SET payment_id = :payment_id, refund_number = :refund_number, amount = :amount, currency = :currency, reason = :reason, status = :status, gateway_refund_id = :gateway_refund_id, actor_type = :actor_type, actor_id = :actor_id WHERE id = :id'
+            : 'INSERT INTO payment_refunds (id, payment_id, refund_number, amount, currency, reason, status, gateway_refund_id, actor_type, actor_id, created_at) VALUES (:id, :payment_id, :refund_number, :amount, :currency, :reason, :status, :gateway_refund_id, :actor_type, :actor_id, :created_at)';
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
@@ -41,7 +41,7 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
 
     public function findById(string $id): ?PaymentRefund
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM payment_refunds WHERE id = :id");
+        $stmt = $this->pdo->prepare('SELECT * FROM payment_refunds WHERE id = :id');
         $stmt->execute(['id' => $id]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -50,7 +50,7 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
 
     public function findByRefundNumber(string $refundNumber): ?PaymentRefund
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM payment_refunds WHERE refund_number = :refund_number");
+        $stmt = $this->pdo->prepare('SELECT * FROM payment_refunds WHERE refund_number = :refund_number');
         $stmt->execute(['refund_number' => $refundNumber]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -59,7 +59,7 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
 
     public function findByPaymentId(string $paymentId): array
     {
-        $stmt = $this->pdo->prepare("SELECT * FROM payment_refunds WHERE payment_id = :payment_id ORDER BY created_at ASC");
+        $stmt = $this->pdo->prepare('SELECT * FROM payment_refunds WHERE payment_id = :payment_id ORDER BY created_at ASC');
         $stmt->execute(['payment_id' => $paymentId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -78,7 +78,7 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
             gatewayRefundId: $row['gateway_refund_id'] ?? null,
             actorType: $row['actor_type'] ?? null,
             actorId: $row['actor_id'] ?? null,
-            createdAt: !empty($row['created_at']) ? new DateTimeImmutable($row['created_at']) : null
+            createdAt: ! empty($row['created_at']) ? new DateTimeImmutable($row['created_at']) : null
         );
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Services;
 
-use DateTimeImmutable;
 use Ttpryg\PaymentEngine\Contracts\PaymentAttemptRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
@@ -37,7 +36,7 @@ class WebhookProcessorService
         $gateway = $this->gatewayManager->get($gatewayProvider);
         $result = $gateway->verifyWebhook($payload, $headers);
 
-        if (!$result->isValid) {
+        if (! $result->isValid) {
             throw GatewayException::failed($gatewayProvider, $result->failureReason ?? 'Webhook verification failed');
         }
 
@@ -59,7 +58,7 @@ class WebhookProcessorService
 
         // 3. Record WebhookEvent audit record
         $webhookEvent = new WebhookEvent(
-            id: 'wh-' . bin2hex(random_bytes(8)),
+            id: 'wh-'.bin2hex(random_bytes(8)),
             gatewayProvider: $gatewayProvider,
             eventId: $result->eventId,
             payloadFingerprint: $fingerprint,
@@ -83,15 +82,15 @@ class WebhookProcessorService
             }
         }
 
-        if (!$payment instanceof Payment && isset($payload['payment_number'])) {
+        if (! $payment instanceof Payment && isset($payload['payment_number'])) {
             $payment = $this->paymentRepo->findByPaymentNumber((string) $payload['payment_number']);
         }
 
-        if (!$payment instanceof Payment && isset($payload['payment_id'])) {
+        if (! $payment instanceof Payment && isset($payload['payment_id'])) {
             $payment = $this->paymentRepo->findById((string) $payload['payment_id']);
         }
 
-        if (!$payment instanceof Payment) {
+        if (! $payment instanceof Payment) {
             throw PaymentNotFoundException::forPaymentNumber($result->transactionReference ?? 'unknown');
         }
 
@@ -109,13 +108,13 @@ class WebhookProcessorService
         }
 
         $webhookHistory = new PaymentHistory(
-            id: 'pay-hist-' . bin2hex(random_bytes(8)),
+            id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::WEBHOOK_RECEIVED,
             toStatus: $payment->status,
             actorType: 'gateway',
             actorId: $gatewayProvider,
-            note: "Webhook event processed",
+            note: 'Webhook event processed',
             metadata: ['fingerprint' => $fingerprint, 'event_id' => $result->eventId]
         );
         $this->historyRepo->save($webhookHistory);

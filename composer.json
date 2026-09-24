@@ -11,10 +11,10 @@
     ],
     "require": {
         "php": "^8.1",
-        "psr/event-dispatcher": "^1.0",
         "ttpryg/event-dispatcher": "^1.0"
     },
     "require-dev": {
+        "laravel/pint": "^1.20",
         "phpunit/phpunit": "^10.0",
         "rector/rector": "^2.0"
     },
@@ -33,5 +33,16 @@
         "preferred-install": "dist",
         "sort-packages": true
     },
-    "minimum-stability": "stable"
+    "minimum-stability": "stable",
+    "scripts": {
+        "test": "phpunit",
+        "fix:check": [
+            "vendor/bin/rector process --dry-run",
+            "vendor/bin/pint --test"
+        ],
+        "fix": [
+            "vendor/bin/rector process",
+            "vendor/bin/pint"
+        ]
+    }
 }

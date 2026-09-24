@@ -15,12 +15,19 @@ use Ttpryg\PaymentEngine\ValueObjects\PaymentNumber;
 class Payment
 {
     public PaymentNumber $paymentNumber;
+
     public PaymentMethod $method;
+
     public PaymentStatus $status;
+
     public Money $amount;
+
     public Money $fee;
+
     public Money $totalAmount;
+
     public Money $paidAmount;
+
     public Money $refundedAmount;
 
     public function __construct(
@@ -55,8 +62,8 @@ class Payment
         $this->paidAmount = $paidAmount ?? Money::zero($this->totalAmount->currency);
         $this->refundedAmount = $refundedAmount ?? Money::zero($this->totalAmount->currency);
 
-        $this->createdAt = $createdAt ?? new DateTimeImmutable();
-        $this->updatedAt = $updatedAt ?? new DateTimeImmutable();
+        $this->createdAt = $createdAt ?? new DateTimeImmutable;
+        $this->updatedAt = $updatedAt ?? new DateTimeImmutable;
     }
 
     public function getRemainingBalance(): Money
@@ -64,6 +71,7 @@ class Payment
         if ($this->paidAmount->isGreaterThanOrEqual($this->totalAmount)) {
             return Money::zero($this->totalAmount->currency);
         }
+
         return $this->totalAmount->subtract($this->paidAmount);
     }
 
@@ -72,6 +80,7 @@ class Payment
         if ($this->refundedAmount->isGreaterThanOrEqual($this->paidAmount)) {
             return Money::zero($this->paidAmount->currency);
         }
+
         return $this->paidAmount->subtract($this->refundedAmount);
     }
 

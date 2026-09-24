@@ -29,6 +29,7 @@ class MemoryPaymentRefundRepository implements PaymentRefundRepositoryInterface
                 return $refund;
             }
         }
+
         return null;
     }
 
@@ -40,6 +41,7 @@ class MemoryPaymentRefundRepository implements PaymentRefundRepositoryInterface
                 $result[] = $refund;
             }
         }
+
         return $result;
     }
 }

@@ -73,7 +73,7 @@ class PaymentService
             $response = $gateway->createTransaction($payment);
 
             $attempt = new PaymentAttempt(
-                id: 'att-' . bin2hex(random_bytes(8)),
+                id: 'att-'.bin2hex(random_bytes(8)),
                 paymentId: $payment->id,
                 gatewayProvider: $gatewayProvider,
                 transactionReference: $response->transactionReference,
@@ -95,7 +95,7 @@ class PaymentService
         }
 
         $history = new PaymentHistory(
-            id: 'pay-hist-' . bin2hex(random_bytes(8)),
+            id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::PAYMENT_CREATED,
             toStatus: PaymentStatus::PENDING,
@@ -153,17 +153,17 @@ class PaymentService
         }
 
         $payment = $this->paymentRepo->findById($paymentId);
-        if (!$payment instanceof Payment) {
+        if (! $payment instanceof Payment) {
             throw PaymentNotFoundException::forId($paymentId);
         }
 
         $fromStatus = $payment->status;
         $payment->status = PaymentStatus::CANCELLED;
-        $payment->updatedAt = new DateTimeImmutable();
+        $payment->updatedAt = new DateTimeImmutable;
         $this->paymentRepo->save($payment);
 
         $history = new PaymentHistory(
-            id: 'pay-hist-' . bin2hex(random_bytes(8)),
+            id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::STATUS_CHANGED,
             fromStatus: $fromStatus,
@@ -179,7 +179,7 @@ class PaymentService
 
     private function executeInTransaction(callable $callback): void
     {
-        if ($this->pdo instanceof PDO && !$this->pdo->inTransaction()) {
+        if ($this->pdo instanceof PDO && ! $this->pdo->inTransaction()) {
             $this->pdo->beginTransaction();
             try {
                 $callback();

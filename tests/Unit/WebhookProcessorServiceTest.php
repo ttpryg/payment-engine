@@ -27,23 +27,28 @@ use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 class WebhookProcessorServiceTest extends TestCase
 {
     private MemoryPaymentRepository $paymentRepo;
+
     private MemoryPaymentAttemptRepository $attemptRepo;
+
     private MemoryPaymentHistoryRepository $historyRepo;
+
     private MemoryWebhookEventRepository $webhookRepo;
+
     private ListenerProvider $listenerProvider;
+
     private WebhookProcessorService $webhookProcessor;
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository();
-        $this->attemptRepo = new MemoryPaymentAttemptRepository();
-        $this->historyRepo = new MemoryPaymentHistoryRepository();
-        $this->webhookRepo = new MemoryWebhookEventRepository();
+        $this->paymentRepo = new MemoryPaymentRepository;
+        $this->attemptRepo = new MemoryPaymentAttemptRepository;
+        $this->historyRepo = new MemoryPaymentHistoryRepository;
+        $this->webhookRepo = new MemoryWebhookEventRepository;
 
-        $gatewayManager = new GatewayManager();
+        $gatewayManager = new GatewayManager;
         $gatewayManager->register(new MockPaymentGateway('mock'));
 
-        $this->listenerProvider = new ListenerProvider();
+        $this->listenerProvider = new ListenerProvider;
         $dispatcher = new EventDispatcher($this->listenerProvider);
 
         $statusService = new PaymentStatusService($this->paymentRepo, $this->historyRepo, $dispatcher);
@@ -58,7 +63,7 @@ class WebhookProcessorServiceTest extends TestCase
         );
     }
 
-    public function testProcessWebhookAndDeduplicateWebhookExecution(): void
+    public function test_process_webhook_and_deduplicate_webhook_execution(): void
     {
         $eventDispatchedCount = 0;
         $this->listenerProvider->addListener(PaymentCompletedEvent::class, function () use (&$eventDispatchedCount) {
@@ -114,7 +119,7 @@ class WebhookProcessorServiceTest extends TestCase
         $this->assertCount($initialHistoryCount, $newHistories);
     }
 
-    public function testInvalidSignatureThrowsGatewayException(): void
+    public function test_invalid_signature_throws_gateway_exception(): void
     {
         $this->expectException(GatewayException::class);
         $this->webhookProcessor->process('mock', ['test' => 'fail'], ['x-mock-signature' => 'invalid']);

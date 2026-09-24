@@ -40,11 +40,11 @@ class PaymentRefundService
         ?string $actorId = null
     ): PaymentRefund {
         $payment = $this->paymentRepo->findById($paymentId);
-        if (!$payment instanceof Payment) {
+        if (! $payment instanceof Payment) {
             throw PaymentNotFoundException::forId($paymentId);
         }
 
-        if (!$payment->canRefund($amount)) {
+        if (! $payment->canRefund($amount)) {
             throw RefundAmountExceededException::create($amount, $payment->getRefundableAmount());
         }
 
@@ -55,8 +55,8 @@ class PaymentRefundService
             $gatewayRefundId = $gatewayResponse->gatewayRefundId;
         }
 
-        $refundId = 'ref-' . bin2hex(random_bytes(8));
-        $refundNumber = 'RFD-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+        $refundId = 'ref-'.bin2hex(random_bytes(8));
+        $refundNumber = 'RFD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
 
         $refund = new PaymentRefund(
             id: $refundId,
@@ -79,11 +79,11 @@ class PaymentRefundService
         $targetStatus = $isFullRefund ? PaymentStatus::REFUNDED : PaymentStatus::PARTIALLY_REFUNDED;
 
         $payment->status = $targetStatus;
-        $payment->updatedAt = new DateTimeImmutable();
+        $payment->updatedAt = new DateTimeImmutable;
         $this->paymentRepo->save($payment);
 
         $history = new PaymentHistory(
-            id: 'pay-hist-' . bin2hex(random_bytes(8)),
+            id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::REFUND_ISSUED,
             fromStatus: $fromStatus,

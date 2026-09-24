@@ -20,6 +20,7 @@ final class PaymentNumber implements Stringable
     {
         $date = date('Ymd');
         $random = strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+
         return new self("{$prefix}-{$date}-{$random}");
     }
 

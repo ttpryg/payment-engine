@@ -20,15 +20,18 @@ use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 class PaymentStatusTransitionTest extends TestCase
 {
     private MemoryPaymentRepository $paymentRepo;
+
     private MemoryPaymentHistoryRepository $historyRepo;
+
     private ListenerProvider $listenerProvider;
+
     private PaymentStatusService $statusService;
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository();
-        $this->historyRepo = new MemoryPaymentHistoryRepository();
-        $this->listenerProvider = new ListenerProvider();
+        $this->paymentRepo = new MemoryPaymentRepository;
+        $this->historyRepo = new MemoryPaymentHistoryRepository;
+        $this->listenerProvider = new ListenerProvider;
         $dispatcher = new EventDispatcher($this->listenerProvider);
 
         $this->statusService = new PaymentStatusService(
@@ -38,7 +41,7 @@ class PaymentStatusTransitionTest extends TestCase
         );
     }
 
-    public function testValidStatusTransitionsAndEvents(): void
+    public function test_valid_status_transitions_and_events(): void
     {
         $completedDispatched = false;
         $this->listenerProvider->addListener(PaymentCompletedEvent::class, function (PaymentCompletedEvent $event) use (&$completedDispatched) {
@@ -64,7 +67,7 @@ class PaymentStatusTransitionTest extends TestCase
         $this->assertCount(1, $histories);
     }
 
-    public function testInvalidTransitionThrowsException(): void
+    public function test_invalid_transition_throws_exception(): void
     {
         $payment = new Payment(
             id: 'pay-test-2',
@@ -79,7 +82,7 @@ class PaymentStatusTransitionTest extends TestCase
         $this->statusService->complete('pay-test-2');
     }
 
-    public function testIdempotentStatusTransition(): void
+    public function test_idempotent_status_transition(): void
     {
         $payment = new Payment(
             id: 'pay-test-3',
@@ -99,7 +102,7 @@ class PaymentStatusTransitionTest extends TestCase
         $this->assertCount(0, $histories);
     }
 
-    public function testCancelPaymentDispatchesEvent(): void
+    public function test_cancel_payment_dispatches_event(): void
     {
         $cancelledDispatched = false;
         $this->listenerProvider->addListener(PaymentCancelledEvent::class, function (PaymentCancelledEvent $event) use (&$cancelledDispatched) {

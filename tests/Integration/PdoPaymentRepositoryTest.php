@@ -29,10 +29,15 @@ use Ttpryg\PaymentEngine\ValueObjects\PaymentNumber;
 class PdoPaymentRepositoryTest extends TestCase
 {
     private PDO $pdo;
+
     private PdoPaymentRepository $paymentRepo;
+
     private PdoPaymentAttemptRepository $attemptRepo;
+
     private PdoPaymentRefundRepository $refundRepo;
+
     private PdoPaymentHistoryRepository $historyRepo;
+
     private PdoWebhookEventRepository $webhookRepo;
 
     protected function setUp(): void
@@ -40,7 +45,7 @@ class PdoPaymentRepositoryTest extends TestCase
         $this->pdo = new PDO('sqlite::memory:');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $schema = file_get_contents(__DIR__ . '/../../database/schema.sql');
+        $schema = file_get_contents(__DIR__.'/../../database/schema.sql');
         $this->pdo->exec($schema);
 
         $this->paymentRepo = new PdoPaymentRepository($this->pdo);
@@ -50,7 +55,7 @@ class PdoPaymentRepositoryTest extends TestCase
         $this->webhookRepo = new PdoWebhookEventRepository($this->pdo);
     }
 
-    public function testSaveAndFindPaymentWithPdo(): void
+    public function test_save_and_find_payment_with_pdo(): void
     {
         $payment = new Payment(
             id: 'pay-pdo-1',
@@ -135,7 +140,7 @@ class PdoPaymentRepositoryTest extends TestCase
         $this->assertEquals('evt_sqlite_01', $fetchedWebhook->eventId);
     }
 
-    public function testTransactionRollback(): void
+    public function test_transaction_rollback(): void
     {
         $this->expectException(\RuntimeException::class);
 
@@ -149,7 +154,7 @@ class PdoPaymentRepositoryTest extends TestCase
             );
             $this->paymentRepo->save($payment);
 
-            throw new \RuntimeException("Forced transaction failure");
+            throw new \RuntimeException('Forced transaction failure');
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
             throw $e;
