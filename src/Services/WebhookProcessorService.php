@@ -98,11 +98,11 @@ class WebhookProcessorService
         if ($webhookVerificationResult->mappedStatus instanceof PaymentStatus) {
             $this->paymentStatusService->changeStatus(
                 payment: $payment,
+                targetStatus: $webhookVerificationResult->mappedStatus,
                 actorType: 'gateway',
                 actorId: $gatewayProvider,
                 note: "Webhook received from [{$gatewayProvider}]",
                 metadata: ['webhook_event_id' => $webhookEvent->id, 'transaction_reference' => $webhookVerificationResult->transactionReference],
-                targetStatus: $webhookVerificationResult->mappedStatus,
                 paidAmount: $webhookVerificationResult->paidAmount
             );
         }

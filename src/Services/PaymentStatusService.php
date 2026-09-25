@@ -75,7 +75,7 @@ class PaymentStatusService
         $this->paymentHistoryRepository->save($paymentHistory);
 
         if ($this->eventDispatcher instanceof EventDispatcherInterface) {
-            $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($payment, $fromStatus, $paymentStatus));
+            $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($payment, $fromStatus, $targetStatus));
 
             match ($targetStatus) {
                 PaymentStatus::COMPLETED => $this->eventDispatcher->dispatch(new PaymentCompletedEvent($payment)),
@@ -93,7 +93,7 @@ class PaymentStatusService
     {
         $payment = $this->getExistingPayment($paymentId);
 
-        return $this->changeStatus($payment, PaymentStatus::COMPLETED, $actorType, $actorId, $note, paidAmount: $money);
+        return $this->changeStatus($payment, PaymentStatus::COMPLETED, $actorType, $actorId, $note, paidAmount: $paidAmount);
     }
 
     public function fail(string $paymentId, ?string $reason = null, ?string $actorType = null, ?string $actorId = null): Payment

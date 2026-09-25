@@ -55,12 +55,12 @@ class PaymentServiceTest extends TestCase
     {
         $payment = $this->paymentService->createPayment(
             id: 'pay-001',
+            payable: new PayableReference('order', 'ord-777'),
             amount: 500000,
             method: PaymentMethod::VIRTUAL_ACCOUNT,
             gatewayProvider: 'mock',
-            fee: 4500,
-            payable: new PayableReference('order', 'ord-777'),
-            payer: new PayerReference('user', 'usr-999')
+            payer: new PayerReference('user', 'usr-999'),
+            fee: 4500
         );
 
         $this->assertEquals('pay-001', $payment->id);
@@ -84,9 +84,9 @@ class PaymentServiceTest extends TestCase
     {
         $this->paymentService->createPayment(
             id: 'pay-002',
+            payable: new PayableReference('invoice', 'inv-101'),
             amount: 250000,
             gatewayProvider: 'manual',
-            payable: new PayableReference('invoice', 'inv-101'),
             payer: new PayerReference('customer', 'cust-55')
         );
 
