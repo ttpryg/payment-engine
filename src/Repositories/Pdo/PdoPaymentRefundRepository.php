@@ -15,9 +15,9 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
 {
     public function __construct(private readonly PDO $pdo) {}
 
-    public function save(PaymentRefund $refund): void
+    public function save(PaymentRefund $paymentRefund): void
     {
-        $existing = $this->findById($refund->id);
+        $existing = $this->findById($paymentRefund->id);
 
         $sql = $existing instanceof PaymentRefund
             ? 'UPDATE payment_refunds SET payment_id = :payment_id, refund_number = :refund_number, amount = :amount, currency = :currency, reason = :reason, status = :status, gateway_refund_id = :gateway_refund_id, actor_type = :actor_type, actor_id = :actor_id WHERE id = :id'
@@ -25,17 +25,17 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            'id' => $refund->id,
-            'payment_id' => $refund->paymentId,
-            'refund_number' => $refund->refundNumber,
-            'amount' => $refund->amount->amount,
-            'currency' => $refund->amount->currency,
-            'reason' => $refund->reason,
-            'status' => $refund->status->value,
-            'gateway_refund_id' => $refund->gatewayRefundId,
-            'actor_type' => $refund->actorType,
-            'actor_id' => $refund->actorId,
-            'created_at' => $refund->createdAt->format('Y-m-d H:i:s'),
+            'id' => $paymentRefund->id,
+            'payment_id' => $paymentRefund->paymentId,
+            'refund_number' => $paymentRefund->refundNumber,
+            'amount' => $paymentRefund->amount->amount,
+            'currency' => $paymentRefund->amount->currency,
+            'reason' => $paymentRefund->reason,
+            'status' => $paymentRefund->status->value,
+            'gateway_refund_id' => $paymentRefund->gatewayRefundId,
+            'actor_type' => $paymentRefund->actorType,
+            'actor_id' => $paymentRefund->actorId,
+            'created_at' => $paymentRefund->createdAt->format('Y-m-d H:i:s'),
         ]);
     }
 

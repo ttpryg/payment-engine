@@ -19,34 +19,34 @@ use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 
 class PaymentStatusTransitionTest extends TestCase
 {
-    private MemoryPaymentRepository $paymentRepo;
+    private MemoryPaymentRepository $memoryPaymentRepository;
 
-    private MemoryPaymentHistoryRepository $historyRepo;
+    private MemoryPaymentHistoryRepository $memoryPaymentHistoryRepository;
 
     private ListenerProvider $listenerProvider;
 
-    private PaymentStatusService $statusService;
+    private PaymentStatusService $paymentStatusService;
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository;
-        $this->historyRepo = new MemoryPaymentHistoryRepository;
+        $this->memoryPaymentRepository = new MemoryPaymentRepository;
+        $this->memoryPaymentHistoryRepository = new MemoryPaymentHistoryRepository;
         $this->listenerProvider = new ListenerProvider;
-        $dispatcher = new EventDispatcher($this->listenerProvider);
+        $eventDispatcher = new EventDispatcher($this->listenerProvider);
 
-        $this->statusService = new PaymentStatusService(
-            $this->paymentRepo,
-            $this->historyRepo,
-            $dispatcher
+        $this->paymentStatusService = new PaymentStatusService(
+            $this->memoryPaymentRepository,
+            $this->memoryPaymentHistoryRepository,
+            $eventDispatcher
         );
     }
 
     public function test_valid_status_transitions_and_events(): void
     {
         $completedDispatched = false;
-        $this->listenerProvider->addListener(PaymentCompletedEvent::class, function (PaymentCompletedEvent $event) use (&$completedDispatched) {
+        $this->listenerProvider->addListener(PaymentCompletedEvent::class, function (PaymentCompletedEvent $paymentCompletedEvent) use (&$completedDispatched): void {
             $completedDispatched = true;
-            $this->assertEquals('pay-test-1', $event->payment->id);
+            $this->assertEquals('pay-test-1', $paymentCompletedEvent->payment->id);
         });
 
         $payment = new Payment(
@@ -55,15 +55,15 @@ class PaymentStatusTransitionTest extends TestCase
             payable: new PayableReference('order', 'ord-100'),
             amount: 150000
         );
-        $this->paymentRepo->save($payment);
+        $this->memoryPaymentRepository->save($payment);
 
-        $this->statusService->complete('pay-test-1');
+        $this->paymentStatusService->complete('pay-test-1');
         $this->assertEquals(PaymentStatus::COMPLETED, $payment->status);
         $this->assertEquals(150000, $payment->paidAmount->amount);
         $this->assertNotNull($payment->paidAt);
         $this->assertTrue($completedDispatched);
 
-        $histories = $this->historyRepo->findByPaymentId('pay-test-1');
+        $histories = $this->memoryPaymentHistoryRepository->findByPaymentId('pay-test-1');
         $this->assertCount(1, $histories);
     }
 
@@ -76,10 +76,10 @@ class PaymentStatusTransitionTest extends TestCase
             status: PaymentStatus::FAILED,
             amount: 50000
         );
-        $this->paymentRepo->save($payment);
+        $this->memoryPaymentRepository->save($payment);
 
         $this->expectException(InvalidStatusTransitionException::class);
-        $this->statusService->complete('pay-test-2');
+        $this->paymentStatusService->complete('pay-test-2');
     }
 
     public function test_idempotent_status_transition(): void
@@ -91,23 +91,23 @@ class PaymentStatusTransitionTest extends TestCase
             status: PaymentStatus::COMPLETED,
             amount: 75000
         );
-        $this->paymentRepo->save($payment);
+        $this->memoryPaymentRepository->save($payment);
 
         // Calling complete again on already completed payment
-        $this->statusService->complete('pay-test-3');
+        $this->paymentStatusService->complete('pay-test-3');
         $this->assertEquals(PaymentStatus::COMPLETED, $payment->status);
 
         // No new history appended
-        $histories = $this->historyRepo->findByPaymentId('pay-test-3');
+        $histories = $this->memoryPaymentHistoryRepository->findByPaymentId('pay-test-3');
         $this->assertCount(0, $histories);
     }
 
     public function test_cancel_payment_dispatches_event(): void
     {
         $cancelledDispatched = false;
-        $this->listenerProvider->addListener(PaymentCancelledEvent::class, function (PaymentCancelledEvent $event) use (&$cancelledDispatched) {
+        $this->listenerProvider->addListener(PaymentCancelledEvent::class, function (PaymentCancelledEvent $paymentCancelledEvent) use (&$cancelledDispatched): void {
             $cancelledDispatched = true;
-            $this->assertEquals('Customer request', $event->reason);
+            $this->assertEquals('Customer request', $paymentCancelledEvent->reason);
         });
 
         $payment = new Payment(
@@ -116,9 +116,9 @@ class PaymentStatusTransitionTest extends TestCase
             payable: new PayableReference('order', 'ord-400'),
             amount: 200000
         );
-        $this->paymentRepo->save($payment);
+        $this->memoryPaymentRepository->save($payment);
 
-        $this->statusService->cancel('pay-test-4', reason: 'Customer request');
+        $this->paymentStatusService->cancel('pay-test-4', reason: 'Customer request');
         $this->assertEquals(PaymentStatus::CANCELLED, $payment->status);
         $this->assertTrue($cancelledDispatched);
     }

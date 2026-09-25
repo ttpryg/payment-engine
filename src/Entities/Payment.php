@@ -84,9 +84,9 @@ class Payment
         return $this->paidAmount->subtract($this->refundedAmount);
     }
 
-    public function canRefund(Money $amount): bool
+    public function canRefund(Money $money): bool
     {
-        return $amount->amount > 0 && $amount->isLessThanOrEqual($this->getRefundableAmount());
+        return $money->amount > 0 && $money->isLessThanOrEqual($this->getRefundableAmount());
     }
 
     public function isPaid(): bool

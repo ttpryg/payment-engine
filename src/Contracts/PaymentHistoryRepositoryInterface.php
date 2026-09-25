@@ -8,7 +8,7 @@ use Ttpryg\PaymentEngine\Entities\PaymentHistory;
 
 interface PaymentHistoryRepositoryInterface
 {
-    public function save(PaymentHistory $history): void;
+    public function save(PaymentHistory $paymentHistory): void;
 
     /**
      * @return PaymentHistory[]

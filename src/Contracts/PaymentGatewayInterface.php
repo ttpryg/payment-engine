@@ -21,5 +21,5 @@ interface PaymentGatewayInterface
 
     public function checkStatus(string $transactionReference): GatewayStatusResponse;
 
-    public function refund(Payment $payment, Money $amount, ?string $reason = null): RefundResponse;
+    public function refund(Payment $payment, Money $money, ?string $reason = null): RefundResponse;
 }

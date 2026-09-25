@@ -17,8 +17,8 @@ final class PayableReference
         }
     }
 
-    public function equals(PayableReference $other): bool
+    public function equals(PayableReference $payableReference): bool
     {
-        return $this->type === $other->type && $this->id === $other->id;
+        return $this->type === $payableReference->type && $this->id === $payableReference->id;
     }
 }

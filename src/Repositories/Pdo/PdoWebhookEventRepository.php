@@ -13,9 +13,9 @@ class PdoWebhookEventRepository implements WebhookEventRepositoryInterface
 {
     public function __construct(private readonly PDO $pdo) {}
 
-    public function save(WebhookEvent $event): void
+    public function save(WebhookEvent $webhookEvent): void
     {
-        $existing = $this->findById($event->id);
+        $existing = $this->findById($webhookEvent->id);
 
         $sql = $existing instanceof WebhookEvent
             ? 'UPDATE webhook_events SET gateway_provider = :gateway_provider, event_id = :event_id, payload_fingerprint = :payload_fingerprint, payload = :payload, is_processed = :is_processed, processed_at = :processed_at WHERE id = :id'
@@ -23,14 +23,14 @@ class PdoWebhookEventRepository implements WebhookEventRepositoryInterface
 
         $stmt = $this->pdo->prepare($sql);
         $stmt->execute([
-            'id' => $event->id,
-            'gateway_provider' => $event->gatewayProvider,
-            'event_id' => $event->eventId,
-            'payload_fingerprint' => $event->payloadFingerprint,
-            'payload' => json_encode($event->payload, JSON_THROW_ON_ERROR),
-            'is_processed' => $event->isProcessed ? 1 : 0,
-            'processed_at' => $event->processedAt?->format('Y-m-d H:i:s'),
-            'created_at' => $event->createdAt->format('Y-m-d H:i:s'),
+            'id' => $webhookEvent->id,
+            'gateway_provider' => $webhookEvent->gatewayProvider,
+            'event_id' => $webhookEvent->eventId,
+            'payload_fingerprint' => $webhookEvent->payloadFingerprint,
+            'payload' => json_encode($webhookEvent->payload, JSON_THROW_ON_ERROR),
+            'is_processed' => $webhookEvent->isProcessed ? 1 : 0,
+            'processed_at' => $webhookEvent->processedAt?->format('Y-m-d H:i:s'),
+            'created_at' => $webhookEvent->createdAt->format('Y-m-d H:i:s'),
         ]);
     }
 

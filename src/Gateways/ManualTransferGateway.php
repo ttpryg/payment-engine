@@ -64,12 +64,12 @@ class ManualTransferGateway implements PaymentGatewayInterface
         );
     }
 
-    public function refund(Payment $payment, Money $amount, ?string $reason = null): RefundResponse
+    public function refund(Payment $payment, Money $money, ?string $reason = null): RefundResponse
     {
         return new RefundResponse(
             isSuccessful: true,
             gatewayRefundId: 'manual_ref_'.bin2hex(random_bytes(6)),
-            refundedAmount: $amount,
+            refundedAmount: $money,
             rawResponse: ['note' => 'Manual refund recorded offline']
         );
     }

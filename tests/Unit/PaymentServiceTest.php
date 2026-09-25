@@ -20,11 +20,11 @@ use Ttpryg\PaymentEngine\ValueObjects\PayerReference;
 
 class PaymentServiceTest extends TestCase
 {
-    private MemoryPaymentRepository $paymentRepo;
+    private MemoryPaymentRepository $memoryPaymentRepository;
 
-    private MemoryPaymentAttemptRepository $attemptRepo;
+    private MemoryPaymentAttemptRepository $memoryPaymentAttemptRepository;
 
-    private MemoryPaymentHistoryRepository $historyRepo;
+    private MemoryPaymentHistoryRepository $memoryPaymentHistoryRepository;
 
     private GatewayManager $gatewayManager;
 
@@ -32,22 +32,22 @@ class PaymentServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository;
-        $this->attemptRepo = new MemoryPaymentAttemptRepository;
-        $this->historyRepo = new MemoryPaymentHistoryRepository;
+        $this->memoryPaymentRepository = new MemoryPaymentRepository;
+        $this->memoryPaymentAttemptRepository = new MemoryPaymentAttemptRepository;
+        $this->memoryPaymentHistoryRepository = new MemoryPaymentHistoryRepository;
 
         $this->gatewayManager = new GatewayManager;
         $this->gatewayManager->register(new MockPaymentGateway('mock'));
         $this->gatewayManager->register(new ManualTransferGateway('manual'));
 
-        $statusService = new PaymentStatusService($this->paymentRepo, $this->historyRepo);
+        $paymentStatusService = new PaymentStatusService($this->memoryPaymentRepository, $this->memoryPaymentHistoryRepository);
 
         $this->paymentService = new PaymentService(
-            $this->paymentRepo,
-            $this->attemptRepo,
-            $this->historyRepo,
+            $this->memoryPaymentRepository,
+            $this->memoryPaymentAttemptRepository,
+            $this->memoryPaymentHistoryRepository,
             $this->gatewayManager,
-            $statusService
+            $paymentStatusService
         );
     }
 
@@ -55,12 +55,12 @@ class PaymentServiceTest extends TestCase
     {
         $payment = $this->paymentService->createPayment(
             id: 'pay-001',
-            payable: new PayableReference('order', 'ord-777'),
             amount: 500000,
             method: PaymentMethod::VIRTUAL_ACCOUNT,
             gatewayProvider: 'mock',
-            payer: new PayerReference('user', 'usr-999'),
-            fee: 4500
+            fee: 4500,
+            payable: new PayableReference('order', 'ord-777'),
+            payer: new PayerReference('user', 'usr-999')
         );
 
         $this->assertEquals('pay-001', $payment->id);
@@ -70,13 +70,13 @@ class PaymentServiceTest extends TestCase
         $this->assertEquals(504500, $payment->totalAmount->amount);
 
         // Verify attempt was created with mock transaction reference
-        $attempts = $this->attemptRepo->findByPaymentId('pay-001');
+        $attempts = $this->memoryPaymentAttemptRepository->findByPaymentId('pay-001');
         $this->assertCount(1, $attempts);
         $this->assertStringStartsWith('mock_tx_', $attempts[0]->transactionReference);
         $this->assertNotNull($payment->metadata['redirect_url']);
 
         // Verify history recorded
-        $histories = $this->historyRepo->findByPaymentId('pay-001');
+        $histories = $this->memoryPaymentHistoryRepository->findByPaymentId('pay-001');
         $this->assertCount(1, $histories);
     }
 
@@ -84,9 +84,9 @@ class PaymentServiceTest extends TestCase
     {
         $this->paymentService->createPayment(
             id: 'pay-002',
-            payable: new PayableReference('invoice', 'inv-101'),
             amount: 250000,
             gatewayProvider: 'manual',
+            payable: new PayableReference('invoice', 'inv-101'),
             payer: new PayerReference('customer', 'cust-55')
         );
 

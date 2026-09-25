@@ -24,8 +24,8 @@ use Ttpryg\PaymentEngine\ValueObjects\Money;
 class PaymentStatusService
 {
     public function __construct(
-        private readonly PaymentRepositoryInterface $paymentRepo,
-        private readonly PaymentHistoryRepositoryInterface $historyRepo,
+        private readonly PaymentRepositoryInterface $paymentRepository,
+        private readonly PaymentHistoryRepositoryInterface $paymentHistoryRepository,
         private readonly ?EventDispatcherInterface $eventDispatcher = null
     ) {}
 
@@ -59,9 +59,9 @@ class PaymentStatusService
             }
         }
 
-        $this->paymentRepo->save($payment);
+        $this->paymentRepository->save($payment);
 
-        $history = new PaymentHistory(
+        $paymentHistory = new PaymentHistory(
             id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::STATUS_CHANGED,
@@ -72,10 +72,10 @@ class PaymentStatusService
             note: $note,
             metadata: $metadata
         );
-        $this->historyRepo->save($history);
+        $this->paymentHistoryRepository->save($paymentHistory);
 
         if ($this->eventDispatcher instanceof EventDispatcherInterface) {
-            $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($payment, $fromStatus, $targetStatus));
+            $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($payment, $fromStatus, $paymentStatus));
 
             match ($targetStatus) {
                 PaymentStatus::COMPLETED => $this->eventDispatcher->dispatch(new PaymentCompletedEvent($payment)),
@@ -93,7 +93,7 @@ class PaymentStatusService
     {
         $payment = $this->getExistingPayment($paymentId);
 
-        return $this->changeStatus($payment, PaymentStatus::COMPLETED, $actorType, $actorId, $note, paidAmount: $paidAmount);
+        return $this->changeStatus($payment, PaymentStatus::COMPLETED, $actorType, $actorId, $note, paidAmount: $money);
     }
 
     public function fail(string $paymentId, ?string $reason = null, ?string $actorType = null, ?string $actorId = null): Payment
@@ -119,7 +119,7 @@ class PaymentStatusService
 
     private function getExistingPayment(string $paymentId): Payment
     {
-        $payment = $this->paymentRepo->findById($paymentId);
+        $payment = $this->paymentRepository->findById($paymentId);
         if (! $payment instanceof Payment) {
             throw PaymentNotFoundException::forId($paymentId);
         }

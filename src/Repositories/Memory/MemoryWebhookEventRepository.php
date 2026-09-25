@@ -12,9 +12,9 @@ class MemoryWebhookEventRepository implements WebhookEventRepositoryInterface
     /** @var array<string, WebhookEvent> */
     private array $events = [];
 
-    public function save(WebhookEvent $event): void
+    public function save(WebhookEvent $webhookEvent): void
     {
-        $this->events[$event->id] = $event;
+        $this->events[$webhookEvent->id] = $webhookEvent;
     }
 
     public function findById(string $id): ?WebhookEvent

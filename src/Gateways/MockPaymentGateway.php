@@ -96,7 +96,7 @@ class MockPaymentGateway implements PaymentGatewayInterface
         );
     }
 
-    public function refund(Payment $payment, Money $amount, ?string $reason = null): RefundResponse
+    public function refund(Payment $payment, Money $money, ?string $reason = null): RefundResponse
     {
         if (! $this->shouldSucceed) {
             return new RefundResponse(
@@ -110,8 +110,8 @@ class MockPaymentGateway implements PaymentGatewayInterface
         return new RefundResponse(
             isSuccessful: true,
             gatewayRefundId: $refundId,
-            refundedAmount: $amount,
-            rawResponse: ['refund_id' => $refundId, 'amount' => $amount->amount]
+            refundedAmount: $money,
+            rawResponse: ['refund_id' => $refundId, 'amount' => $money->amount]
         );
     }
 }

@@ -28,11 +28,11 @@ use Ttpryg\PaymentEngine\ValueObjects\PaymentNumber;
 class PaymentService
 {
     public function __construct(
-        private readonly PaymentRepositoryInterface $paymentRepo,
-        private readonly PaymentAttemptRepositoryInterface $attemptRepo,
-        private readonly PaymentHistoryRepositoryInterface $historyRepo,
+        private readonly PaymentRepositoryInterface $paymentRepository,
+        private readonly PaymentAttemptRepositoryInterface $paymentAttemptRepository,
+        private readonly PaymentHistoryRepositoryInterface $paymentHistoryRepository,
         private readonly ?GatewayManager $gatewayManager = null,
-        private readonly ?PaymentStatusService $statusService = null,
+        private readonly ?PaymentStatusService $paymentStatusService = null,
         private readonly ?EventDispatcherInterface $eventDispatcher = null,
         private readonly ?PDO $pdo = null
     ) {}
@@ -94,7 +94,7 @@ class PaymentService
             }
         }
 
-        $history = new PaymentHistory(
+        $paymentHistory = new PaymentHistory(
             id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::PAYMENT_CREATED,
@@ -105,12 +105,12 @@ class PaymentService
             metadata: ['gateway_provider' => $gatewayProvider]
         );
 
-        $this->executeInTransaction(function () use ($payment, $attempt, $history): void {
-            $this->paymentRepo->save($payment);
+        $this->executeInTransaction(function () use ($payment, $attempt, $paymentHistory): void {
+            $this->paymentRepository->save($payment);
             if ($attempt instanceof PaymentAttempt) {
-                $this->attemptRepo->save($attempt);
+                $this->paymentAttemptRepository->save($attempt);
             }
-            $this->historyRepo->save($history);
+            $this->paymentHistoryRepository->save($paymentHistory);
         });
 
         if ($this->eventDispatcher instanceof EventDispatcherInterface) {
@@ -122,12 +122,12 @@ class PaymentService
 
     public function getPayment(string $id): ?Payment
     {
-        return $this->paymentRepo->findById($id);
+        return $this->paymentRepository->findById($id);
     }
 
     public function getPaymentByNumber(string $paymentNumber): ?Payment
     {
-        return $this->paymentRepo->findByPaymentNumber($paymentNumber);
+        return $this->paymentRepository->findByPaymentNumber($paymentNumber);
     }
 
     /**
@@ -135,7 +135,7 @@ class PaymentService
      */
     public function getPaymentsByPayable(string $type, string $id): array
     {
-        return $this->paymentRepo->findByPayable($type, $id);
+        return $this->paymentRepository->findByPayable($type, $id);
     }
 
     /**
@@ -143,16 +143,16 @@ class PaymentService
      */
     public function getPaymentsByPayer(string $type, string $id): array
     {
-        return $this->paymentRepo->findByPayer($type, $id);
+        return $this->paymentRepository->findByPayer($type, $id);
     }
 
     public function cancelPayment(string $paymentId, ?string $actorType = null, ?string $actorId = null, ?string $reason = null): Payment
     {
-        if ($this->statusService instanceof PaymentStatusService) {
-            return $this->statusService->cancel($paymentId, $reason, $actorType, $actorId);
+        if ($this->paymentStatusService instanceof PaymentStatusService) {
+            return $this->paymentStatusService->cancel($paymentId, $reason, $actorType, $actorId);
         }
 
-        $payment = $this->paymentRepo->findById($paymentId);
+        $payment = $this->paymentRepository->findById($paymentId);
         if (! $payment instanceof Payment) {
             throw PaymentNotFoundException::forId($paymentId);
         }
@@ -160,9 +160,9 @@ class PaymentService
         $fromStatus = $payment->status;
         $payment->status = PaymentStatus::CANCELLED;
         $payment->updatedAt = new DateTimeImmutable;
-        $this->paymentRepo->save($payment);
+        $this->paymentRepository->save($payment);
 
-        $history = new PaymentHistory(
+        $paymentHistory = new PaymentHistory(
             id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::STATUS_CHANGED,
@@ -172,7 +172,7 @@ class PaymentService
             actorId: $actorId,
             note: $reason
         );
-        $this->historyRepo->save($history);
+        $this->paymentHistoryRepository->save($paymentHistory);
 
         return $payment;
     }

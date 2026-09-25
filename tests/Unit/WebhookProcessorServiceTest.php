@@ -26,47 +26,47 @@ use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 
 class WebhookProcessorServiceTest extends TestCase
 {
-    private MemoryPaymentRepository $paymentRepo;
+    private MemoryPaymentRepository $memoryPaymentRepository;
 
-    private MemoryPaymentAttemptRepository $attemptRepo;
+    private MemoryPaymentAttemptRepository $memoryPaymentAttemptRepository;
 
-    private MemoryPaymentHistoryRepository $historyRepo;
+    private MemoryPaymentHistoryRepository $memoryPaymentHistoryRepository;
 
-    private MemoryWebhookEventRepository $webhookRepo;
+    private MemoryWebhookEventRepository $memoryWebhookEventRepository;
 
     private ListenerProvider $listenerProvider;
 
-    private WebhookProcessorService $webhookProcessor;
+    private WebhookProcessorService $webhookProcessorService;
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository;
-        $this->attemptRepo = new MemoryPaymentAttemptRepository;
-        $this->historyRepo = new MemoryPaymentHistoryRepository;
-        $this->webhookRepo = new MemoryWebhookEventRepository;
+        $this->memoryPaymentRepository = new MemoryPaymentRepository;
+        $this->memoryPaymentAttemptRepository = new MemoryPaymentAttemptRepository;
+        $this->memoryPaymentHistoryRepository = new MemoryPaymentHistoryRepository;
+        $this->memoryWebhookEventRepository = new MemoryWebhookEventRepository;
 
         $gatewayManager = new GatewayManager;
         $gatewayManager->register(new MockPaymentGateway('mock'));
 
         $this->listenerProvider = new ListenerProvider;
-        $dispatcher = new EventDispatcher($this->listenerProvider);
+        $eventDispatcher = new EventDispatcher($this->listenerProvider);
 
-        $statusService = new PaymentStatusService($this->paymentRepo, $this->historyRepo, $dispatcher);
+        $paymentStatusService = new PaymentStatusService($this->memoryPaymentRepository, $this->memoryPaymentHistoryRepository, $eventDispatcher);
 
-        $this->webhookProcessor = new WebhookProcessorService(
+        $this->webhookProcessorService = new WebhookProcessorService(
             $gatewayManager,
-            $this->webhookRepo,
-            $this->paymentRepo,
-            $this->attemptRepo,
-            $this->historyRepo,
-            $statusService
+            $this->memoryWebhookEventRepository,
+            $this->memoryPaymentRepository,
+            $this->memoryPaymentAttemptRepository,
+            $this->memoryPaymentHistoryRepository,
+            $paymentStatusService
         );
     }
 
     public function test_process_webhook_and_deduplicate_webhook_execution(): void
     {
         $eventDispatchedCount = 0;
-        $this->listenerProvider->addListener(PaymentCompletedEvent::class, function () use (&$eventDispatchedCount) {
+        $this->listenerProvider->addListener(PaymentCompletedEvent::class, function () use (&$eventDispatchedCount): void {
             $eventDispatchedCount++;
         });
 
@@ -78,9 +78,9 @@ class WebhookProcessorServiceTest extends TestCase
             gatewayProvider: 'mock',
             amount: 300000
         );
-        $this->paymentRepo->save($payment);
+        $this->memoryPaymentRepository->save($payment);
 
-        $attempt = new PaymentAttempt(
+        $paymentAttempt = new PaymentAttempt(
             id: 'att-wh-1',
             paymentId: 'pay-wh-1',
             gatewayProvider: 'mock',
@@ -88,7 +88,7 @@ class WebhookProcessorServiceTest extends TestCase
             status: AttemptStatus::PENDING,
             amount: new Money(300000, 'IDR')
         );
-        $this->attemptRepo->save($attempt);
+        $this->memoryPaymentAttemptRepository->save($paymentAttempt);
 
         $payload = [
             'event_id' => 'evt_99999',
@@ -98,30 +98,30 @@ class WebhookProcessorServiceTest extends TestCase
         ];
 
         // 2. First Webhook Ingestion
-        $res1 = $this->webhookProcessor->process('mock', $payload);
-        $this->assertTrue($res1->isValid);
+        $webhookVerificationResult = $this->webhookProcessorService->process('mock', $payload);
+        $this->assertTrue($webhookVerificationResult->isValid);
         $this->assertEquals(PaymentStatus::COMPLETED, $payment->status);
         $this->assertEquals(1, $eventDispatchedCount);
 
-        $histories = $this->historyRepo->findByPaymentId('pay-wh-1');
+        $histories = $this->memoryPaymentHistoryRepository->findByPaymentId('pay-wh-1');
         $initialHistoryCount = count($histories);
         $this->assertGreaterThan(0, $initialHistoryCount);
 
         // 3. Second Webhook Ingestion (Duplicate delivery from gateway)
-        $res2 = $this->webhookProcessor->process('mock', $payload);
+        $res2 = $this->webhookProcessorService->process('mock', $payload);
         $this->assertTrue($res2->isValid);
 
         // Assert: NO duplicate domain events dispatched!
         $this->assertEquals(1, $eventDispatchedCount);
 
         // Assert: NO duplicate history records appended!
-        $newHistories = $this->historyRepo->findByPaymentId('pay-wh-1');
+        $newHistories = $this->memoryPaymentHistoryRepository->findByPaymentId('pay-wh-1');
         $this->assertCount($initialHistoryCount, $newHistories);
     }
 
     public function test_invalid_signature_throws_gateway_exception(): void
     {
         $this->expectException(GatewayException::class);
-        $this->webhookProcessor->process('mock', ['test' => 'fail'], ['x-mock-signature' => 'invalid']);
+        $this->webhookProcessorService->process('mock', ['test' => 'fail'], ['x-mock-signature' => 'invalid']);
     }
 }

@@ -8,7 +8,7 @@ use Ttpryg\PaymentEngine\Entities\WebhookEvent;
 
 interface WebhookEventRepositoryInterface
 {
-    public function save(WebhookEvent $event): void;
+    public function save(WebhookEvent $webhookEvent): void;
 
     public function findById(string $id): ?WebhookEvent;
 

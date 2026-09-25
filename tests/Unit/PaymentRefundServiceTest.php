@@ -23,34 +23,34 @@ use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 
 class PaymentRefundServiceTest extends TestCase
 {
-    private MemoryPaymentRepository $paymentRepo;
+    private MemoryPaymentRepository $memoryPaymentRepository;
 
-    private MemoryPaymentRefundRepository $refundRepo;
+    private MemoryPaymentRefundRepository $memoryPaymentRefundRepository;
 
-    private MemoryPaymentHistoryRepository $historyRepo;
+    private MemoryPaymentHistoryRepository $memoryPaymentHistoryRepository;
 
     private ListenerProvider $listenerProvider;
 
-    private PaymentRefundService $refundService;
+    private PaymentRefundService $paymentRefundService;
 
     protected function setUp(): void
     {
-        $this->paymentRepo = new MemoryPaymentRepository;
-        $this->refundRepo = new MemoryPaymentRefundRepository;
-        $this->historyRepo = new MemoryPaymentHistoryRepository;
+        $this->memoryPaymentRepository = new MemoryPaymentRepository;
+        $this->memoryPaymentRefundRepository = new MemoryPaymentRefundRepository;
+        $this->memoryPaymentHistoryRepository = new MemoryPaymentHistoryRepository;
 
         $gatewayManager = new GatewayManager;
         $gatewayManager->register(new MockPaymentGateway('mock'));
 
         $this->listenerProvider = new ListenerProvider;
-        $dispatcher = new EventDispatcher($this->listenerProvider);
+        $eventDispatcher = new EventDispatcher($this->listenerProvider);
 
-        $this->refundService = new PaymentRefundService(
-            $this->paymentRepo,
-            $this->refundRepo,
-            $this->historyRepo,
+        $this->paymentRefundService = new PaymentRefundService(
+            $this->memoryPaymentRepository,
+            $this->memoryPaymentRefundRepository,
+            $this->memoryPaymentHistoryRepository,
             $gatewayManager,
-            $dispatcher
+            $eventDispatcher
         );
     }
 
@@ -59,11 +59,11 @@ class PaymentRefundServiceTest extends TestCase
         $partialEventFired = false;
         $fullEventFired = false;
 
-        $this->listenerProvider->addListener(PaymentPartiallyRefundedEvent::class, function () use (&$partialEventFired) {
+        $this->listenerProvider->addListener(PaymentPartiallyRefundedEvent::class, function () use (&$partialEventFired): void {
             $partialEventFired = true;
         });
 
-        $this->listenerProvider->addListener(PaymentRefundedEvent::class, function () use (&$fullEventFired) {
+        $this->listenerProvider->addListener(PaymentRefundedEvent::class, function () use (&$fullEventFired): void {
             $fullEventFired = true;
         });
 
@@ -76,24 +76,24 @@ class PaymentRefundServiceTest extends TestCase
             amount: 100000,
             paidAmount: new Money(100000, 'IDR')
         );
-        $this->paymentRepo->save($payment);
+        $this->memoryPaymentRepository->save($payment);
 
         // 1. Partial refund of 40,000
-        $refund1 = $this->refundService->issueRefund('pay-refund-1', new Money(40000, 'IDR'), reason: 'Damaged item');
-        $this->assertEquals(40000, $refund1->amount->amount);
+        $paymentRefund = $this->paymentRefundService->issueRefund('pay-refund-1', new Money(40000, 'IDR'), reason: 'Damaged item');
+        $this->assertEquals(40000, $paymentRefund->amount->amount);
         $this->assertEquals(PaymentStatus::PARTIALLY_REFUNDED, $payment->status);
         $this->assertEquals(40000, $payment->refundedAmount->amount);
         $this->assertEquals(60000, $payment->getRefundableAmount()->amount);
         $this->assertTrue($partialEventFired);
 
         // 2. Full refund of remaining 60,000
-        $this->refundService->issueRefund('pay-refund-1', new Money(60000, 'IDR'), reason: 'Return balance');
+        $this->paymentRefundService->issueRefund('pay-refund-1', new Money(60000, 'IDR'), reason: 'Return balance');
         $this->assertEquals(PaymentStatus::REFUNDED, $payment->status);
         $this->assertEquals(100000, $payment->refundedAmount->amount);
         $this->assertEquals(0, $payment->getRefundableAmount()->amount);
         $this->assertTrue($fullEventFired);
 
-        $allRefunds = $this->refundRepo->findByPaymentId('pay-refund-1');
+        $allRefunds = $this->memoryPaymentRefundRepository->findByPaymentId('pay-refund-1');
         $this->assertCount(2, $allRefunds);
     }
 
@@ -108,9 +108,9 @@ class PaymentRefundServiceTest extends TestCase
             amount: 50000,
             paidAmount: new Money(50000, 'IDR')
         );
-        $this->paymentRepo->save($payment);
+        $this->memoryPaymentRepository->save($payment);
 
         $this->expectException(RefundAmountExceededException::class);
-        $this->refundService->issueRefund('pay-refund-2', new Money(60000, 'IDR'));
+        $this->paymentRefundService->issueRefund('pay-refund-2', new Money(60000, 'IDR'));
     }
 }
