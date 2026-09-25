@@ -8,7 +8,7 @@ use Ttpryg\PaymentEngine\Entities\PaymentAttempt;
 
 interface PaymentAttemptRepositoryInterface
 {
-    public function save(PaymentAttempt $attempt): void;
+    public function save(PaymentAttempt $paymentAttempt): void;
 
     public function findById(string $id): ?PaymentAttempt;
 

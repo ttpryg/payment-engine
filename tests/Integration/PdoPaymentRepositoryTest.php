@@ -29,28 +29,33 @@ use Ttpryg\PaymentEngine\ValueObjects\PaymentNumber;
 class PdoPaymentRepositoryTest extends TestCase
 {
     private PDO $pdo;
-    private PdoPaymentRepository $paymentRepo;
-    private PdoPaymentAttemptRepository $attemptRepo;
-    private PdoPaymentRefundRepository $refundRepo;
-    private PdoPaymentHistoryRepository $historyRepo;
-    private PdoWebhookEventRepository $webhookRepo;
+
+    private PdoPaymentRepository $pdoPaymentRepository;
+
+    private PdoPaymentAttemptRepository $pdoPaymentAttemptRepository;
+
+    private PdoPaymentRefundRepository $pdoPaymentRefundRepository;
+
+    private PdoPaymentHistoryRepository $pdoPaymentHistoryRepository;
+
+    private PdoWebhookEventRepository $pdoWebhookEventRepository;
 
     protected function setUp(): void
     {
         $this->pdo = new PDO('sqlite::memory:');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $schema = file_get_contents(__DIR__ . '/../../database/schema.sql');
+        $schema = file_get_contents(__DIR__.'/../../database/schema.sql');
         $this->pdo->exec($schema);
 
-        $this->paymentRepo = new PdoPaymentRepository($this->pdo);
-        $this->attemptRepo = new PdoPaymentAttemptRepository($this->pdo);
-        $this->refundRepo = new PdoPaymentRefundRepository($this->pdo);
-        $this->historyRepo = new PdoPaymentHistoryRepository($this->pdo);
-        $this->webhookRepo = new PdoWebhookEventRepository($this->pdo);
+        $this->pdoPaymentRepository = new PdoPaymentRepository($this->pdo);
+        $this->pdoPaymentAttemptRepository = new PdoPaymentAttemptRepository($this->pdo);
+        $this->pdoPaymentRefundRepository = new PdoPaymentRefundRepository($this->pdo);
+        $this->pdoPaymentHistoryRepository = new PdoPaymentHistoryRepository($this->pdo);
+        $this->pdoWebhookEventRepository = new PdoWebhookEventRepository($this->pdo);
     }
 
-    public function testSaveAndFindPaymentWithPdo(): void
+    public function test_save_and_find_payment_with_pdo(): void
     {
         $payment = new Payment(
             id: 'pay-pdo-1',
@@ -64,9 +69,9 @@ class PdoPaymentRepositoryTest extends TestCase
             fee: new Money(1500, 'IDR')
         );
 
-        $this->paymentRepo->save($payment);
+        $this->pdoPaymentRepository->save($payment);
 
-        $fetched = $this->paymentRepo->findById('pay-pdo-1');
+        $fetched = $this->pdoPaymentRepository->findById('pay-pdo-1');
         $this->assertNotNull($fetched);
         $this->assertEquals('PAY-PDO-001', $fetched->paymentNumber->value);
         $this->assertEquals('order', $fetched->payable->type);
@@ -76,7 +81,7 @@ class PdoPaymentRepositoryTest extends TestCase
         $this->assertEquals(126500, $fetched->totalAmount->amount);
 
         // Attempts
-        $attempt = new PaymentAttempt(
+        $paymentAttempt = new PaymentAttempt(
             id: 'att-pdo-1',
             paymentId: 'pay-pdo-1',
             gatewayProvider: 'mock',
@@ -84,28 +89,28 @@ class PdoPaymentRepositoryTest extends TestCase
             status: AttemptStatus::PENDING,
             amount: new Money(126500, 'IDR')
         );
-        $this->attemptRepo->save($attempt);
+        $this->pdoPaymentAttemptRepository->save($paymentAttempt);
 
-        $fetchedAttempt = $this->attemptRepo->findByTransactionReference('mock', 'tx_qris_999');
+        $fetchedAttempt = $this->pdoPaymentAttemptRepository->findByTransactionReference('mock', 'tx_qris_999');
         $this->assertNotNull($fetchedAttempt);
         $this->assertEquals('pay-pdo-1', $fetchedAttempt->paymentId);
 
         // Refund
-        $refund = new PaymentRefund(
+        $paymentRefund = new PaymentRefund(
             id: 'rfd-pdo-1',
             paymentId: 'pay-pdo-1',
             refundNumber: 'RFD-PDO-001',
             amount: new Money(50000, 'IDR'),
             status: RefundStatus::COMPLETED
         );
-        $this->refundRepo->save($refund);
+        $this->pdoPaymentRefundRepository->save($paymentRefund);
 
-        $fetchedRefund = $this->refundRepo->findByRefundNumber('RFD-PDO-001');
+        $fetchedRefund = $this->pdoPaymentRefundRepository->findByRefundNumber('RFD-PDO-001');
         $this->assertNotNull($fetchedRefund);
         $this->assertEquals(50000, $fetchedRefund->amount->amount);
 
         // History
-        $history = new PaymentHistory(
+        $paymentHistory = new PaymentHistory(
             id: 'hist-pdo-1',
             paymentId: 'pay-pdo-1',
             action: PaymentHistoryAction::PAYMENT_CREATED,
@@ -114,28 +119,28 @@ class PdoPaymentRepositoryTest extends TestCase
             actorId: 'checkout_svc',
             note: 'Order checkout initiated'
         );
-        $this->historyRepo->save($history);
+        $this->pdoPaymentHistoryRepository->save($paymentHistory);
 
-        $histories = $this->historyRepo->findByPaymentId('pay-pdo-1');
+        $histories = $this->pdoPaymentHistoryRepository->findByPaymentId('pay-pdo-1');
         $this->assertCount(1, $histories);
         $this->assertEquals('system', $histories[0]->actorType);
 
         // Webhook Event
-        $webhook = new WebhookEvent(
+        $webhookEvent = new WebhookEvent(
             id: 'wh-pdo-1',
             gatewayProvider: 'mock',
             eventId: 'evt_sqlite_01',
             payloadFingerprint: 'abc123hash',
             payload: ['status' => 'settled']
         );
-        $this->webhookRepo->save($webhook);
+        $this->pdoWebhookEventRepository->save($webhookEvent);
 
-        $fetchedWebhook = $this->webhookRepo->findByFingerprint('mock', 'abc123hash');
+        $fetchedWebhook = $this->pdoWebhookEventRepository->findByFingerprint('mock', 'abc123hash');
         $this->assertNotNull($fetchedWebhook);
         $this->assertEquals('evt_sqlite_01', $fetchedWebhook->eventId);
     }
 
-    public function testTransactionRollback(): void
+    public function test_transaction_rollback(): void
     {
         $this->expectException(\RuntimeException::class);
 
@@ -147,9 +152,9 @@ class PdoPaymentRepositoryTest extends TestCase
                 payable: new PayableReference('order', 'ord-fail'),
                 amount: 10000
             );
-            $this->paymentRepo->save($payment);
+            $this->pdoPaymentRepository->save($payment);
 
-            throw new \RuntimeException("Forced transaction failure");
+            throw new \RuntimeException('Forced transaction failure');
         } catch (\Throwable $e) {
             $this->pdo->rollBack();
             throw $e;

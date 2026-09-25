@@ -25,44 +25,44 @@ use Ttpryg\PaymentEngine\ValueObjects\Money;
 class PaymentRefundService
 {
     public function __construct(
-        private readonly PaymentRepositoryInterface $paymentRepo,
-        private readonly PaymentRefundRepositoryInterface $refundRepo,
-        private readonly PaymentHistoryRepositoryInterface $historyRepo,
+        private readonly PaymentRepositoryInterface $paymentRepository,
+        private readonly PaymentRefundRepositoryInterface $paymentRefundRepository,
+        private readonly PaymentHistoryRepositoryInterface $paymentHistoryRepository,
         private readonly ?GatewayManager $gatewayManager = null,
         private readonly ?EventDispatcherInterface $eventDispatcher = null
     ) {}
 
     public function issueRefund(
         string $paymentId,
-        Money $amount,
+        Money $money,
         ?string $reason = null,
         ?string $actorType = null,
         ?string $actorId = null
     ): PaymentRefund {
-        $payment = $this->paymentRepo->findById($paymentId);
-        if (!$payment instanceof Payment) {
+        $payment = $this->paymentRepository->findById($paymentId);
+        if (! $payment instanceof Payment) {
             throw PaymentNotFoundException::forId($paymentId);
         }
 
-        if (!$payment->canRefund($amount)) {
-            throw RefundAmountExceededException::create($amount, $payment->getRefundableAmount());
+        if (! $payment->canRefund($money)) {
+            throw RefundAmountExceededException::create($money, $payment->getRefundableAmount());
         }
 
         $gatewayRefundId = null;
         if ($this->gatewayManager instanceof GatewayManager && $this->gatewayManager->has($payment->gatewayProvider)) {
             $gateway = $this->gatewayManager->get($payment->gatewayProvider);
-            $gatewayResponse = $gateway->refund($payment, $amount, $reason);
+            $gatewayResponse = $gateway->refund($payment, $money, $reason);
             $gatewayRefundId = $gatewayResponse->gatewayRefundId;
         }
 
-        $refundId = 'ref-' . bin2hex(random_bytes(8));
-        $refundNumber = 'RFD-' . date('Ymd') . '-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+        $refundId = 'ref-'.bin2hex(random_bytes(8));
+        $refundNumber = 'RFD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
 
-        $refund = new PaymentRefund(
+        $paymentRefund = new PaymentRefund(
             id: $refundId,
             paymentId: $payment->id,
             refundNumber: $refundNumber,
-            amount: $amount,
+            amount: $money,
             reason: $reason,
             status: RefundStatus::COMPLETED,
             gatewayRefundId: $gatewayRefundId,
@@ -70,39 +70,39 @@ class PaymentRefundService
             actorId: $actorId
         );
 
-        $this->refundRepo->save($refund);
+        $this->paymentRefundRepository->save($paymentRefund);
 
         $fromStatus = $payment->status;
-        $payment->refundedAmount = $payment->refundedAmount->add($amount);
+        $payment->refundedAmount = $payment->refundedAmount->add($money);
 
         $isFullRefund = $payment->refundedAmount->isGreaterThanOrEqual($payment->paidAmount);
         $targetStatus = $isFullRefund ? PaymentStatus::REFUNDED : PaymentStatus::PARTIALLY_REFUNDED;
 
         $payment->status = $targetStatus;
-        $payment->updatedAt = new DateTimeImmutable();
-        $this->paymentRepo->save($payment);
+        $payment->updatedAt = new DateTimeImmutable;
+        $this->paymentRepository->save($payment);
 
-        $history = new PaymentHistory(
-            id: 'pay-hist-' . bin2hex(random_bytes(8)),
+        $paymentHistory = new PaymentHistory(
+            id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::REFUND_ISSUED,
             fromStatus: $fromStatus,
             toStatus: $targetStatus,
             actorType: $actorType,
             actorId: $actorId,
-            note: "Refund issued: {$amount->amount} {$amount->currency}. Reason: {$reason}",
-            metadata: ['refund_id' => $refund->id, 'refund_number' => $refund->refundNumber]
+            note: "Refund issued: {$money->amount} {$money->currency}. Reason: {$reason}",
+            metadata: ['refund_id' => $paymentRefund->id, 'refund_number' => $paymentRefund->refundNumber]
         );
-        $this->historyRepo->save($history);
+        $this->paymentHistoryRepository->save($paymentHistory);
 
         if ($this->eventDispatcher instanceof EventDispatcherInterface) {
             if ($isFullRefund) {
-                $this->eventDispatcher->dispatch(new PaymentRefundedEvent($payment, $refund));
+                $this->eventDispatcher->dispatch(new PaymentRefundedEvent($payment, $paymentRefund));
             } else {
-                $this->eventDispatcher->dispatch(new PaymentPartiallyRefundedEvent($payment, $refund));
+                $this->eventDispatcher->dispatch(new PaymentPartiallyRefundedEvent($payment, $paymentRefund));
             }
         }
 
-        return $refund;
+        return $paymentRefund;
     }
 }

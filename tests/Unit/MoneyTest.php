@@ -10,7 +10,7 @@ use Ttpryg\PaymentEngine\ValueObjects\Money;
 
 class MoneyTest extends TestCase
 {
-    public function testMoneyCreationAndOperations(): void
+    public function test_money_creation_and_operations(): void
     {
         $m1 = new Money(50000, 'IDR');
         $m2 = new Money(25000, 'IDR');
@@ -34,13 +34,13 @@ class MoneyTest extends TestCase
         $this->assertTrue(Money::zero()->isZero());
     }
 
-    public function testNegativeAmountThrowsException(): void
+    public function test_negative_amount_throws_exception(): void
     {
         $this->expectException(InvalidArgumentException::class);
         new Money(-1000, 'IDR');
     }
 
-    public function testDifferentCurrenciesThrowException(): void
+    public function test_different_currencies_throw_exception(): void
     {
         $idr = new Money(10000, 'IDR');
         $usd = new Money(10, 'USD');

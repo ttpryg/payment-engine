@@ -8,7 +8,7 @@ use Ttpryg\PaymentEngine\Entities\PaymentRefund;
 
 interface PaymentRefundRepositoryInterface
 {
-    public function save(PaymentRefund $refund): void;
+    public function save(PaymentRefund $paymentRefund): void;
 
     public function findById(string $id): ?PaymentRefund;
 

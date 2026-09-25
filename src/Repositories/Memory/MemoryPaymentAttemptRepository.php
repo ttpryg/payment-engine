@@ -12,9 +12,9 @@ class MemoryPaymentAttemptRepository implements PaymentAttemptRepositoryInterfac
     /** @var array<string, PaymentAttempt> */
     private array $attempts = [];
 
-    public function save(PaymentAttempt $attempt): void
+    public function save(PaymentAttempt $paymentAttempt): void
     {
-        $this->attempts[$attempt->id] = $attempt;
+        $this->attempts[$paymentAttempt->id] = $paymentAttempt;
     }
 
     public function findById(string $id): ?PaymentAttempt
@@ -30,6 +30,7 @@ class MemoryPaymentAttemptRepository implements PaymentAttemptRepositoryInterfac
                 $result[] = $attempt;
             }
         }
+
         return $result;
     }
 
@@ -40,6 +41,7 @@ class MemoryPaymentAttemptRepository implements PaymentAttemptRepositoryInterfac
                 return $attempt;
             }
         }
+
         return null;
     }
 }

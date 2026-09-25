@@ -28,19 +28,20 @@ class MockPaymentGateway implements PaymentGatewayInterface
 
     public function createTransaction(Payment $payment, array $options = []): GatewayResponse
     {
-        if (!$this->shouldSucceed) {
+        if (! $this->shouldSucceed) {
             return new GatewayResponse(
                 isSuccessful: false,
                 errorMessage: 'Mock transaction failed as configured'
             );
         }
 
-        $txRef = 'mock_tx_' . bin2hex(random_bytes(6));
+        $txRef = 'mock_tx_'.bin2hex(random_bytes(6));
+
         return new GatewayResponse(
             isSuccessful: true,
             transactionReference: $txRef,
             redirectUrl: "https://mock-payment.example.com/pay/{$txRef}",
-            paymentCode: 'MOCK-VA-' . substr($payment->paymentNumber->value, -6),
+            paymentCode: 'MOCK-VA-'.substr($payment->paymentNumber->value, -6),
             metadata: [
                 'provider' => $this->name,
                 'mock_mode' => true,
@@ -95,21 +96,22 @@ class MockPaymentGateway implements PaymentGatewayInterface
         );
     }
 
-    public function refund(Payment $payment, Money $amount, ?string $reason = null): RefundResponse
+    public function refund(Payment $payment, Money $money, ?string $reason = null): RefundResponse
     {
-        if (!$this->shouldSucceed) {
+        if (! $this->shouldSucceed) {
             return new RefundResponse(
                 isSuccessful: false,
                 errorMessage: 'Mock refund failed'
             );
         }
 
-        $refundId = 'mock_ref_' . bin2hex(random_bytes(6));
+        $refundId = 'mock_ref_'.bin2hex(random_bytes(6));
+
         return new RefundResponse(
             isSuccessful: true,
             gatewayRefundId: $refundId,
-            refundedAmount: $amount,
-            rawResponse: ['refund_id' => $refundId, 'amount' => $amount->amount]
+            refundedAmount: $money,
+            rawResponse: ['refund_id' => $refundId, 'amount' => $money->amount]
         );
     }
 }

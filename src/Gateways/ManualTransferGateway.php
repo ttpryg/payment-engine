@@ -25,7 +25,8 @@ class ManualTransferGateway implements PaymentGatewayInterface
 
     public function createTransaction(Payment $payment, array $options = []): GatewayResponse
     {
-        $ref = 'manual_' . $payment->paymentNumber->value;
+        $ref = 'manual_'.$payment->paymentNumber->value;
+
         return new GatewayResponse(
             isSuccessful: true,
             transactionReference: $ref,
@@ -63,12 +64,12 @@ class ManualTransferGateway implements PaymentGatewayInterface
         );
     }
 
-    public function refund(Payment $payment, Money $amount, ?string $reason = null): RefundResponse
+    public function refund(Payment $payment, Money $money, ?string $reason = null): RefundResponse
     {
         return new RefundResponse(
             isSuccessful: true,
-            gatewayRefundId: 'manual_ref_' . bin2hex(random_bytes(6)),
-            refundedAmount: $amount,
+            gatewayRefundId: 'manual_ref_'.bin2hex(random_bytes(6)),
+            refundedAmount: $money,
             rawResponse: ['note' => 'Manual refund recorded offline']
         );
     }

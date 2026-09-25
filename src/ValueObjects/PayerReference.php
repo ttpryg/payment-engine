@@ -17,8 +17,8 @@ final class PayerReference
         }
     }
 
-    public function equals(PayerReference $other): bool
+    public function equals(PayerReference $payerReference): bool
     {
-        return $this->type === $other->type && $this->id === $other->id;
+        return $this->type === $payerReference->type && $this->id === $payerReference->id;
     }
 }

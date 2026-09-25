@@ -12,9 +12,9 @@ class MemoryPaymentHistoryRepository implements PaymentHistoryRepositoryInterfac
     /** @var array<string, PaymentHistory> */
     private array $histories = [];
 
-    public function save(PaymentHistory $history): void
+    public function save(PaymentHistory $paymentHistory): void
     {
-        $this->histories[$history->id] = $history;
+        $this->histories[$paymentHistory->id] = $paymentHistory;
     }
 
     public function findByPaymentId(string $paymentId): array
@@ -25,6 +25,7 @@ class MemoryPaymentHistoryRepository implements PaymentHistoryRepositoryInterfac
                 $result[] = $history;
             }
         }
+
         return $result;
     }
 }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Services;
 
-use DateTimeImmutable;
 use Ttpryg\PaymentEngine\Contracts\PaymentAttemptRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
@@ -25,105 +24,105 @@ class WebhookProcessorService
 {
     public function __construct(
         private readonly GatewayManager $gatewayManager,
-        private readonly WebhookEventRepositoryInterface $webhookRepo,
-        private readonly PaymentRepositoryInterface $paymentRepo,
-        private readonly PaymentAttemptRepositoryInterface $attemptRepo,
-        private readonly PaymentHistoryRepositoryInterface $historyRepo,
-        private readonly PaymentStatusService $statusService
+        private readonly WebhookEventRepositoryInterface $webhookEventRepository,
+        private readonly PaymentRepositoryInterface $paymentRepository,
+        private readonly PaymentAttemptRepositoryInterface $paymentAttemptRepository,
+        private readonly PaymentHistoryRepositoryInterface $paymentHistoryRepository,
+        private readonly PaymentStatusService $paymentStatusService
     ) {}
 
     public function process(string $gatewayProvider, array $payload, array $headers = []): WebhookVerificationResult
     {
-        $gateway = $this->gatewayManager->get($gatewayProvider);
-        $result = $gateway->verifyWebhook($payload, $headers);
+        $paymentGateway = $this->gatewayManager->get($gatewayProvider);
+        $webhookVerificationResult = $paymentGateway->verifyWebhook($payload, $headers);
 
-        if (!$result->isValid) {
-            throw GatewayException::failed($gatewayProvider, $result->failureReason ?? 'Webhook verification failed');
+        if (! $webhookVerificationResult->isValid) {
+            throw GatewayException::failed($gatewayProvider, $webhookVerificationResult->failureReason ?? 'Webhook verification failed');
         }
 
-        $fingerprint = $result->payloadFingerprint ?? WebhookEvent::generateFingerprint($payload);
+        $fingerprint = $webhookVerificationResult->payloadFingerprint ?? WebhookEvent::generateFingerprint($payload);
 
         // 1. Idempotency Check: By Event ID
-        if ($result->eventId !== null) {
-            $existingByEventId = $this->webhookRepo->findByEventId($gatewayProvider, $result->eventId);
+        if ($webhookVerificationResult->eventId !== null) {
+            $existingByEventId = $this->webhookEventRepository->findByEventId($gatewayProvider, $webhookVerificationResult->eventId);
             if ($existingByEventId instanceof WebhookEvent && $existingByEventId->isProcessed) {
-                return $result; // Duplicate detected: return early without side-effects
+                return $webhookVerificationResult; // Duplicate detected: return early without side-effects
             }
         }
 
         // 2. Idempotency Check: By Payload Fingerprint
-        $existingByFingerprint = $this->webhookRepo->findByFingerprint($gatewayProvider, $fingerprint);
+        $existingByFingerprint = $this->webhookEventRepository->findByFingerprint($gatewayProvider, $fingerprint);
         if ($existingByFingerprint instanceof WebhookEvent && $existingByFingerprint->isProcessed) {
-            return $result; // Duplicate detected: return early without side-effects
+            return $webhookVerificationResult; // Duplicate detected: return early without side-effects
         }
 
         // 3. Record WebhookEvent audit record
         $webhookEvent = new WebhookEvent(
-            id: 'wh-' . bin2hex(random_bytes(8)),
+            id: 'wh-'.bin2hex(random_bytes(8)),
             gatewayProvider: $gatewayProvider,
-            eventId: $result->eventId,
+            eventId: $webhookVerificationResult->eventId,
             payloadFingerprint: $fingerprint,
             payload: $payload,
             isProcessed: false
         );
-        $this->webhookRepo->save($webhookEvent);
+        $this->webhookEventRepository->save($webhookEvent);
 
         // 4. Resolve Payment & Attempt
         $payment = null;
-        if ($result->transactionReference !== null) {
-            $attempt = $this->attemptRepo->findByTransactionReference($gatewayProvider, $result->transactionReference);
+        if ($webhookVerificationResult->transactionReference !== null) {
+            $attempt = $this->paymentAttemptRepository->findByTransactionReference($gatewayProvider, $webhookVerificationResult->transactionReference);
             if ($attempt instanceof PaymentAttempt) {
-                $payment = $this->paymentRepo->findById($attempt->paymentId);
-                if ($result->mappedStatus === PaymentStatus::COMPLETED) {
+                $payment = $this->paymentRepository->findById($attempt->paymentId);
+                if ($webhookVerificationResult->mappedStatus === PaymentStatus::COMPLETED) {
                     $attempt->status = AttemptStatus::SUCCESSFUL;
-                } elseif (in_array($result->mappedStatus, [PaymentStatus::FAILED, PaymentStatus::EXPIRED], true)) {
+                } elseif (in_array($webhookVerificationResult->mappedStatus, [PaymentStatus::FAILED, PaymentStatus::EXPIRED], true)) {
                     $attempt->status = AttemptStatus::FAILED;
                 }
-                $this->attemptRepo->save($attempt);
+                $this->paymentAttemptRepository->save($attempt);
             }
         }
 
-        if (!$payment instanceof Payment && isset($payload['payment_number'])) {
-            $payment = $this->paymentRepo->findByPaymentNumber((string) $payload['payment_number']);
+        if (! $payment instanceof Payment && isset($payload['payment_number'])) {
+            $payment = $this->paymentRepository->findByPaymentNumber((string) $payload['payment_number']);
         }
 
-        if (!$payment instanceof Payment && isset($payload['payment_id'])) {
-            $payment = $this->paymentRepo->findById((string) $payload['payment_id']);
+        if (! $payment instanceof Payment && isset($payload['payment_id'])) {
+            $payment = $this->paymentRepository->findById((string) $payload['payment_id']);
         }
 
-        if (!$payment instanceof Payment) {
-            throw PaymentNotFoundException::forPaymentNumber($result->transactionReference ?? 'unknown');
+        if (! $payment instanceof Payment) {
+            throw PaymentNotFoundException::forPaymentNumber($webhookVerificationResult->transactionReference ?? 'unknown');
         }
 
         // 5. Update Status & Audit History
-        if ($result->mappedStatus instanceof PaymentStatus) {
-            $this->statusService->changeStatus(
+        if ($webhookVerificationResult->mappedStatus instanceof PaymentStatus) {
+            $this->paymentStatusService->changeStatus(
                 payment: $payment,
-                targetStatus: $result->mappedStatus,
+                targetStatus: $webhookVerificationResult->mappedStatus,
                 actorType: 'gateway',
                 actorId: $gatewayProvider,
                 note: "Webhook received from [{$gatewayProvider}]",
-                metadata: ['webhook_event_id' => $webhookEvent->id, 'transaction_reference' => $result->transactionReference],
-                paidAmount: $result->paidAmount
+                metadata: ['webhook_event_id' => $webhookEvent->id, 'transaction_reference' => $webhookVerificationResult->transactionReference],
+                paidAmount: $webhookVerificationResult->paidAmount
             );
         }
 
-        $webhookHistory = new PaymentHistory(
-            id: 'pay-hist-' . bin2hex(random_bytes(8)),
+        $paymentHistory = new PaymentHistory(
+            id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::WEBHOOK_RECEIVED,
             toStatus: $payment->status,
             actorType: 'gateway',
             actorId: $gatewayProvider,
-            note: "Webhook event processed",
-            metadata: ['fingerprint' => $fingerprint, 'event_id' => $result->eventId]
+            note: 'Webhook event processed',
+            metadata: ['fingerprint' => $fingerprint, 'event_id' => $webhookVerificationResult->eventId]
         );
-        $this->historyRepo->save($webhookHistory);
+        $this->paymentHistoryRepository->save($paymentHistory);
 
         // 6. Mark WebhookEvent as processed
         $webhookEvent->markAsProcessed();
-        $this->webhookRepo->save($webhookEvent);
+        $this->webhookEventRepository->save($webhookEvent);
 
-        return $result;
+        return $webhookVerificationResult;
     }
 }

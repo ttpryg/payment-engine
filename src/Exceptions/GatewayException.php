@@ -8,8 +8,8 @@ use RuntimeException;
 
 class GatewayException extends RuntimeException
 {
-    public static function failed(string $gateway, string $message, ?\Throwable $previous = null): self
+    public static function failed(string $gateway, string $message, ?\Throwable $throwable = null): self
     {
-        return new self("Gateway [{$gateway}] error: {$message}", 0, $previous);
+        return new self("Gateway [{$gateway}] error: {$message}", 0, $throwable);
     }
 }

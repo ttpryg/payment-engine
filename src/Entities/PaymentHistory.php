@@ -11,7 +11,9 @@ use Ttpryg\PaymentEngine\Enums\PaymentStatus;
 class PaymentHistory
 {
     public readonly PaymentHistoryAction $action;
+
     public readonly ?PaymentStatus $fromStatus;
+
     public readonly ?PaymentStatus $toStatus;
 
     public function __construct(
@@ -29,6 +31,6 @@ class PaymentHistory
         $this->action = is_string($action) ? PaymentHistoryAction::from($action) : $action;
         $this->fromStatus = is_string($fromStatus) ? PaymentStatus::from($fromStatus) : $fromStatus;
         $this->toStatus = is_string($toStatus) ? PaymentStatus::from($toStatus) : $toStatus;
-        $this->createdAt = $createdAt ?? new DateTimeImmutable();
+        $this->createdAt = $createdAt ?? new DateTimeImmutable;
     }
 }

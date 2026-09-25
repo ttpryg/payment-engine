@@ -18,13 +18,13 @@ class WebhookEvent
         public ?DateTimeImmutable $processedAt = null,
         public ?DateTimeImmutable $createdAt = null
     ) {
-        $this->createdAt = $createdAt ?? new DateTimeImmutable();
+        $this->createdAt = $createdAt ?? new DateTimeImmutable;
     }
 
     public function markAsProcessed(): void
     {
         $this->isProcessed = true;
-        $this->processedAt = new DateTimeImmutable();
+        $this->processedAt = new DateTimeImmutable;
     }
 
     public static function generateFingerprint(array $payload): string

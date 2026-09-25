@@ -29,6 +29,7 @@ class MemoryPaymentRepository implements PaymentRepositoryInterface
                 return $payment;
             }
         }
+
         return null;
     }
 
@@ -40,6 +41,7 @@ class MemoryPaymentRepository implements PaymentRepositoryInterface
                 $result[] = $payment;
             }
         }
+
         return $result;
     }
 
@@ -51,6 +53,7 @@ class MemoryPaymentRepository implements PaymentRepositoryInterface
                 $result[] = $payment;
             }
         }
+
         return $result;
     }
 
@@ -58,8 +61,10 @@ class MemoryPaymentRepository implements PaymentRepositoryInterface
     {
         if (isset($this->payments[$id])) {
             unset($this->payments[$id]);
+
             return true;
         }
+
         return false;
     }
 }

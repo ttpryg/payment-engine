@@ -25,6 +25,6 @@ class PaymentRefund
         public ?DateTimeImmutable $createdAt = null
     ) {
         $this->status = is_string($status) ? RefundStatus::from($status) : $status;
-        $this->createdAt = $createdAt ?? new DateTimeImmutable();
+        $this->createdAt = $createdAt ?? new DateTimeImmutable;
     }
 }

@@ -12,17 +12,18 @@ class GatewayManager
     /** @var array<string, PaymentGatewayInterface> */
     private array $gateways = [];
 
-    public function register(PaymentGatewayInterface $gateway): void
+    public function register(PaymentGatewayInterface $paymentGateway): void
     {
-        $this->gateways[strtolower($gateway->getName())] = $gateway;
+        $this->gateways[strtolower($paymentGateway->getName())] = $paymentGateway;
     }
 
     public function get(string $name): PaymentGatewayInterface
     {
         $key = strtolower($name);
-        if (!isset($this->gateways[$key])) {
+        if (! isset($this->gateways[$key])) {
             throw GatewayNotFoundException::forName($name);
         }
+
         return $this->gateways[$key];
     }
 

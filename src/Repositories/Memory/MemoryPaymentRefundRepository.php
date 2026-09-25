@@ -12,9 +12,9 @@ class MemoryPaymentRefundRepository implements PaymentRefundRepositoryInterface
     /** @var array<string, PaymentRefund> */
     private array $refunds = [];
 
-    public function save(PaymentRefund $refund): void
+    public function save(PaymentRefund $paymentRefund): void
     {
-        $this->refunds[$refund->id] = $refund;
+        $this->refunds[$paymentRefund->id] = $paymentRefund;
     }
 
     public function findById(string $id): ?PaymentRefund
@@ -29,6 +29,7 @@ class MemoryPaymentRefundRepository implements PaymentRefundRepositoryInterface
                 return $refund;
             }
         }
+
         return null;
     }
 
@@ -40,6 +41,7 @@ class MemoryPaymentRefundRepository implements PaymentRefundRepositoryInterface
                 $result[] = $refund;
             }
         }
+
         return $result;
     }
 }

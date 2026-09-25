@@ -24,8 +24,8 @@ use Ttpryg\PaymentEngine\ValueObjects\Money;
 class PaymentStatusService
 {
     public function __construct(
-        private readonly PaymentRepositoryInterface $paymentRepo,
-        private readonly PaymentHistoryRepositoryInterface $historyRepo,
+        private readonly PaymentRepositoryInterface $paymentRepository,
+        private readonly PaymentHistoryRepositoryInterface $paymentHistoryRepository,
         private readonly ?EventDispatcherInterface $eventDispatcher = null
     ) {}
 
@@ -42,16 +42,16 @@ class PaymentStatusService
             return $payment;
         }
 
-        if (!$payment->status->canTransitionTo($targetStatus)) {
+        if (! $payment->status->canTransitionTo($targetStatus)) {
             throw InvalidStatusTransitionException::create($payment->status, $targetStatus);
         }
 
         $fromStatus = $payment->status;
         $payment->status = $targetStatus;
-        $payment->updatedAt = new DateTimeImmutable();
+        $payment->updatedAt = new DateTimeImmutable;
 
         if ($targetStatus === PaymentStatus::COMPLETED) {
-            $payment->paidAt = new DateTimeImmutable();
+            $payment->paidAt = new DateTimeImmutable;
             if ($paidAmount instanceof Money) {
                 $payment->paidAmount = $paidAmount;
             } elseif ($payment->paidAmount->isZero()) {
@@ -59,10 +59,10 @@ class PaymentStatusService
             }
         }
 
-        $this->paymentRepo->save($payment);
+        $this->paymentRepository->save($payment);
 
-        $history = new PaymentHistory(
-            id: 'pay-hist-' . bin2hex(random_bytes(8)),
+        $paymentHistory = new PaymentHistory(
+            id: 'pay-hist-'.bin2hex(random_bytes(8)),
             paymentId: $payment->id,
             action: PaymentHistoryAction::STATUS_CHANGED,
             fromStatus: $fromStatus,
@@ -72,7 +72,7 @@ class PaymentStatusService
             note: $note,
             metadata: $metadata
         );
-        $this->historyRepo->save($history);
+        $this->paymentHistoryRepository->save($paymentHistory);
 
         if ($this->eventDispatcher instanceof EventDispatcherInterface) {
             $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($payment, $fromStatus, $targetStatus));
@@ -92,33 +92,38 @@ class PaymentStatusService
     public function complete(string $paymentId, ?Money $paidAmount = null, ?string $actorType = null, ?string $actorId = null, ?string $note = null): Payment
     {
         $payment = $this->getExistingPayment($paymentId);
+
         return $this->changeStatus($payment, PaymentStatus::COMPLETED, $actorType, $actorId, $note, paidAmount: $paidAmount);
     }
 
     public function fail(string $paymentId, ?string $reason = null, ?string $actorType = null, ?string $actorId = null): Payment
     {
         $payment = $this->getExistingPayment($paymentId);
+
         return $this->changeStatus($payment, PaymentStatus::FAILED, $actorType, $actorId, $reason);
     }
 
     public function expire(string $paymentId, ?string $actorType = null, ?string $actorId = null): Payment
     {
         $payment = $this->getExistingPayment($paymentId);
+
         return $this->changeStatus($payment, PaymentStatus::EXPIRED, $actorType, $actorId, 'Payment expired');
     }
 
     public function cancel(string $paymentId, ?string $reason = null, ?string $actorType = null, ?string $actorId = null): Payment
     {
         $payment = $this->getExistingPayment($paymentId);
+
         return $this->changeStatus($payment, PaymentStatus::CANCELLED, $actorType, $actorId, $reason);
     }
 
     private function getExistingPayment(string $paymentId): Payment
     {
-        $payment = $this->paymentRepo->findById($paymentId);
-        if (!$payment instanceof Payment) {
+        $payment = $this->paymentRepository->findById($paymentId);
+        if (! $payment instanceof Payment) {
             throw PaymentNotFoundException::forId($paymentId);
         }
+
         return $payment;
     }
 }
