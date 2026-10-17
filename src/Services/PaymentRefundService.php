@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Services;
 
 use DateTimeImmutable;
+use PDO;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Ttpryg\PaymentEngine\Concerns\ManagesTransactions;
 use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentRefundRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
@@ -24,12 +26,15 @@ use Ttpryg\PaymentEngine\ValueObjects\Money;
 
 class PaymentRefundService
 {
+    use ManagesTransactions;
+
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,
         private readonly PaymentRefundRepositoryInterface $paymentRefundRepository,
         private readonly PaymentHistoryRepositoryInterface $paymentHistoryRepository,
         private readonly ?GatewayManager $gatewayManager = null,
-        private readonly ?EventDispatcherInterface $eventDispatcher = null
+        private readonly ?EventDispatcherInterface $eventDispatcher = null,
+        private readonly ?PDO $pdo = null
     ) {}
 
     public function issueRefund(
@@ -70,8 +75,6 @@ class PaymentRefundService
             actorId: $actorId
         );
 
-        $this->paymentRefundRepository->save($paymentRefund);
-
         $fromStatus = $payment->status;
         $payment->refundedAmount = $payment->refundedAmount->add($money);
 
@@ -80,7 +83,6 @@ class PaymentRefundService
 
         $payment->status = $targetStatus;
         $payment->updatedAt = new DateTimeImmutable;
-        $this->paymentRepository->save($payment);
 
         $paymentHistory = new PaymentHistory(
             id: 'pay-hist-'.bin2hex(random_bytes(8)),
@@ -93,7 +95,12 @@ class PaymentRefundService
             note: "Refund issued: {$money->amount} {$money->currency}. Reason: {$reason}",
             metadata: ['refund_id' => $paymentRefund->id, 'refund_number' => $paymentRefund->refundNumber]
         );
-        $this->paymentHistoryRepository->save($paymentHistory);
+
+        $this->runInTransaction($this->pdo, function () use ($paymentRefund, $payment, $paymentHistory): void {
+            $this->paymentRefundRepository->save($paymentRefund);
+            $this->paymentRepository->save($payment);
+            $this->paymentHistoryRepository->save($paymentHistory);
+        });
 
         if ($this->eventDispatcher instanceof EventDispatcherInterface) {
             if ($isFullRefund) {

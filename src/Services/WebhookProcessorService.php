@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Services;
 
+use PDO;
+use Ttpryg\PaymentEngine\Concerns\ManagesTransactions;
 use Ttpryg\PaymentEngine\Contracts\PaymentAttemptRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
@@ -23,13 +25,16 @@ use Ttpryg\PaymentEngine\Gateways\GatewayManager;
 
 class WebhookProcessorService
 {
+    use ManagesTransactions;
+
     public function __construct(
         private readonly GatewayManager $gatewayManager,
         private readonly WebhookEventRepositoryInterface $webhookEventRepository,
         private readonly PaymentRepositoryInterface $paymentRepository,
         private readonly PaymentAttemptRepositoryInterface $paymentAttemptRepository,
         private readonly PaymentHistoryRepositoryInterface $paymentHistoryRepository,
-        private readonly PaymentStatusService $paymentStatusService
+        private readonly PaymentStatusService $paymentStatusService,
+        private readonly ?PDO $pdo = null
     ) {}
 
     public function process(string $gatewayProvider, array $payload, array $headers = []): WebhookVerificationResult
@@ -57,6 +62,25 @@ class WebhookProcessorService
             return $webhookVerificationResult; // Duplicate detected: return early without side-effects
         }
 
+        try {
+            return $this->runInTransaction(
+                $this->pdo,
+                fn (): WebhookVerificationResult => $this->applyVerifiedWebhook($gatewayProvider, $fingerprint, $webhookVerificationResult, $payload)
+            );
+        } catch (DuplicateWebhookException) {
+            // A concurrent delivery already recorded this webhook (TOCTOU race).
+            // The database unique constraint is authoritative: the transaction is
+            // rolled back and the delivery is treated as an idempotent no-op.
+            return $webhookVerificationResult;
+        }
+    }
+
+    private function applyVerifiedWebhook(
+        string $gatewayProvider,
+        string $fingerprint,
+        WebhookVerificationResult $webhookVerificationResult,
+        array $payload
+    ): WebhookVerificationResult {
         // 3. Record WebhookEvent audit record
         $webhookEvent = new WebhookEvent(
             id: 'wh-'.bin2hex(random_bytes(8)),
@@ -66,15 +90,7 @@ class WebhookProcessorService
             payload: $payload,
             isProcessed: false
         );
-
-        try {
-            $this->webhookEventRepository->save($webhookEvent);
-        } catch (DuplicateWebhookException) {
-            // A concurrent delivery already recorded this webhook (TOCTOU race).
-            // The database unique constraint is authoritative: treat as an
-            // idempotent no-op and return without applying side-effects.
-            return $webhookVerificationResult;
-        }
+        $this->webhookEventRepository->save($webhookEvent);
 
         // 4. Resolve Payment & Attempt
         $payment = null;
