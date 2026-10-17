@@ -16,6 +16,7 @@ use Ttpryg\PaymentEngine\Enums\PaymentHistoryAction;
 use Ttpryg\PaymentEngine\Enums\PaymentMethod;
 use Ttpryg\PaymentEngine\Enums\PaymentStatus;
 use Ttpryg\PaymentEngine\Enums\RefundStatus;
+use Ttpryg\PaymentEngine\Exceptions\DuplicateWebhookException;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentAttemptRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
@@ -138,6 +139,48 @@ class PdoPaymentRepositoryTest extends TestCase
         $fetchedWebhook = $this->pdoWebhookEventRepository->findByFingerprint('mock', 'abc123hash');
         $this->assertNotNull($fetchedWebhook);
         $this->assertEquals('evt_sqlite_01', $fetchedWebhook->eventId);
+    }
+
+    public function test_duplicate_webhook_fingerprint_throws_exception(): void
+    {
+        $this->pdoWebhookEventRepository->save(new WebhookEvent(
+            id: 'wh-dup-fp-1',
+            gatewayProvider: 'mock',
+            eventId: 'evt_dup_fp_1',
+            payloadFingerprint: 'duplicate-fingerprint',
+            payload: ['status' => 'settled']
+        ));
+
+        $this->expectException(DuplicateWebhookException::class);
+
+        $this->pdoWebhookEventRepository->save(new WebhookEvent(
+            id: 'wh-dup-fp-2',
+            gatewayProvider: 'mock',
+            eventId: 'evt_dup_fp_2',
+            payloadFingerprint: 'duplicate-fingerprint',
+            payload: ['status' => 'settled']
+        ));
+    }
+
+    public function test_duplicate_webhook_event_id_throws_exception(): void
+    {
+        $this->pdoWebhookEventRepository->save(new WebhookEvent(
+            id: 'wh-dup-evt-1',
+            gatewayProvider: 'mock',
+            eventId: 'evt_duplicate_id',
+            payloadFingerprint: 'fingerprint-one',
+            payload: ['status' => 'settled']
+        ));
+
+        $this->expectException(DuplicateWebhookException::class);
+
+        $this->pdoWebhookEventRepository->save(new WebhookEvent(
+            id: 'wh-dup-evt-2',
+            gatewayProvider: 'mock',
+            eventId: 'evt_duplicate_id',
+            payloadFingerprint: 'fingerprint-two',
+            payload: ['status' => 'settled']
+        ));
     }
 
     public function test_transaction_rollback(): void

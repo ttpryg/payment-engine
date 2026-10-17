@@ -87,5 +87,5 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     created_at DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_webhook_fingerprint ON webhook_events (gateway_provider, payload_fingerprint);
-CREATE INDEX IF NOT EXISTS idx_webhook_event_id ON webhook_events (gateway_provider, event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_fingerprint ON webhook_events (gateway_provider, payload_fingerprint);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_event_id ON webhook_events (gateway_provider, event_id);

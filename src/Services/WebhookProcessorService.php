@@ -16,6 +16,7 @@ use Ttpryg\PaymentEngine\Entities\WebhookEvent;
 use Ttpryg\PaymentEngine\Enums\AttemptStatus;
 use Ttpryg\PaymentEngine\Enums\PaymentHistoryAction;
 use Ttpryg\PaymentEngine\Enums\PaymentStatus;
+use Ttpryg\PaymentEngine\Exceptions\DuplicateWebhookException;
 use Ttpryg\PaymentEngine\Exceptions\GatewayException;
 use Ttpryg\PaymentEngine\Exceptions\PaymentNotFoundException;
 use Ttpryg\PaymentEngine\Gateways\GatewayManager;
@@ -65,7 +66,15 @@ class WebhookProcessorService
             payload: $payload,
             isProcessed: false
         );
-        $this->webhookEventRepository->save($webhookEvent);
+
+        try {
+            $this->webhookEventRepository->save($webhookEvent);
+        } catch (DuplicateWebhookException) {
+            // A concurrent delivery already recorded this webhook (TOCTOU race).
+            // The database unique constraint is authoritative: treat as an
+            // idempotent no-op and return without applying side-effects.
+            return $webhookVerificationResult;
+        }
 
         // 4. Resolve Payment & Attempt
         $payment = null;
