@@ -6,8 +6,10 @@ namespace Ttpryg\PaymentEngine\Repositories\Pdo;
 
 use DateTimeImmutable;
 use PDO;
+use PDOException;
 use Ttpryg\PaymentEngine\Contracts\WebhookEventRepositoryInterface;
 use Ttpryg\PaymentEngine\Entities\WebhookEvent;
+use Ttpryg\PaymentEngine\Exceptions\DuplicateWebhookException;
 
 class PdoWebhookEventRepository implements WebhookEventRepositoryInterface
 {
@@ -35,8 +37,20 @@ class PdoWebhookEventRepository implements WebhookEventRepositoryInterface
             $params['created_at'] = $webhookEvent->createdAt->format('Y-m-d H:i:s');
         }
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
+        try {
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
+        } catch (PDOException $exception) {
+            if ($this->isUniqueConstraintViolation($exception)) {
+                throw DuplicateWebhookException::forDuplicate(
+                    $webhookEvent->gatewayProvider,
+                    $webhookEvent->eventId,
+                    $webhookEvent->payloadFingerprint
+                );
+            }
+
+            throw $exception;
+        }
     }
 
     public function findById(string $id): ?WebhookEvent
@@ -70,6 +84,20 @@ class PdoWebhookEventRepository implements WebhookEventRepositoryInterface
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
         return $row ? $this->mapToEntity($row) : null;
+    }
+
+    private function isUniqueConstraintViolation(PDOException $exception): bool
+    {
+        $sqlState = $exception->errorInfo[0] ?? $exception->getCode();
+        if ($sqlState === '23000') {
+            return true;
+        }
+
+        $driverCode = $exception->errorInfo[1] ?? null;
+
+        // SQLite (19 = SQLITE_CONSTRAINT, 1555 = PRIMARY KEY, 2067 = UNIQUE),
+        // MySQL/MariaDB (1062 = ER_DUP_ENTRY), PostgreSQL (23505 = unique_violation)
+        return in_array($driverCode, [19, 1062, 1555, 2067, 23505], true);
     }
 
     private function mapToEntity(array $row): WebhookEvent

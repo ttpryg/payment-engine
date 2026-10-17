@@ -1,3 +1,4 @@
+/.agents
 /vendor/
 /.phpunit.cache/
 .phpunit.result.cache

@@ -155,6 +155,8 @@ Webhooks sent by gateways are often redelivered multiple times. `WebhookProcesso
 
 If a webhook with the same `event_id` or `payload_fingerprint` has already been processed, it returns immediately without firing duplicate events or inserting duplicate history entries.
 
+Idempotency is additionally enforced at the database level via unique indexes on `webhook_events (gateway_provider, payload_fingerprint)` and `webhook_events (gateway_provider, event_id)`. When two identical deliveries arrive concurrently (TOCTOU race), the losing `INSERT` raises `DuplicateWebhookException`, which `WebhookProcessorService` treats as a safe no-op.
+
 ---
 
 ## 💰 8. Partial & Full Refunds
@@ -271,8 +273,8 @@ CREATE TABLE IF NOT EXISTS webhook_events (
     created_at DATETIME NOT NULL
 );
 
-CREATE INDEX IF NOT EXISTS idx_webhook_fingerprint ON webhook_events (gateway_provider, payload_fingerprint);
-CREATE INDEX IF NOT EXISTS idx_webhook_event_id ON webhook_events (gateway_provider, event_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_fingerprint ON webhook_events (gateway_provider, payload_fingerprint);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_event_id ON webhook_events (gateway_provider, event_id);
 ```
 
 ---

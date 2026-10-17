@@ -17,4 +17,13 @@ class DuplicateWebhookException extends RuntimeException
     {
         return new self("Duplicate webhook received from [{$gateway}] with event ID: {$eventId}");
     }
+
+    public static function forDuplicate(string $gateway, ?string $eventId, string $fingerprint): self
+    {
+        $identity = $eventId !== null
+            ? "event ID [{$eventId}] or fingerprint [{$fingerprint}]"
+            : "fingerprint [{$fingerprint}]";
+
+        return new self("Duplicate webhook received from [{$gateway}] matching {$identity}");
+    }
 }
