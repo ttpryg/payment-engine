@@ -28,6 +28,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `PaymentExpirationService` with `expireOverdue()` and `countExpirable()` for
   auto-cancelling overdue pending payments from a scheduled worker/cron. Payments that
   changed state after the snapshot query are skipped instead of aborting the batch.
+- `PaymentRepositoryInterface::findPendingExpiringBefore()` (implemented by the PDO and
+  Memory repositories) to fetch pending payments approaching (or past) expiration.
+- `GatewayReconciliationService` with `reconcile()` and `countReconcilable()` to poll
+  `PaymentGatewayInterface::checkStatus()` for pending payments nearing expiry, recover
+  dropped webhooks, and sync local payment/attempt status. Gateway/network failures and
+  concurrently-updated payments are skipped.
 
 ### Changed
 

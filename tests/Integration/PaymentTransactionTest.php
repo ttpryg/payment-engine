@@ -21,6 +21,7 @@ use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
+use Ttpryg\PaymentEngine\Services\GatewayReconciliationService;
 use Ttpryg\PaymentEngine\Services\PaymentRefundService;
 use Ttpryg\PaymentEngine\Services\PaymentStatusService;
 use Ttpryg\PaymentEngine\Services\WebhookProcessorService;
@@ -120,6 +121,109 @@ class PaymentTransactionTest extends TestCase
 
         $this->assertCount(1, $result);
         $this->assertSame('pay-exp-pdo-1', $result[0]->id);
+    }
+
+    public function test_find_pending_expiring_before_includes_near_and_past_expiry(): void
+    {
+        $now = new DateTimeImmutable('2026-10-17 12:00:00');
+        $cutoff = $now->modify('+5 minutes');
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-near',
+            paymentNumber: 'PAY-NEAR',
+            payable: new PayableReference('order', 'ord-near'),
+            status: PaymentStatus::PENDING,
+            amount: 50000,
+            expiresAt: $now->modify('+2 minutes')
+        ));
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-past',
+            paymentNumber: 'PAY-PAST',
+            payable: new PayableReference('order', 'ord-past'),
+            status: PaymentStatus::PENDING,
+            amount: 50000,
+            expiresAt: $now->modify('-10 minutes')
+        ));
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-far',
+            paymentNumber: 'PAY-FAR',
+            payable: new PayableReference('order', 'ord-far'),
+            status: PaymentStatus::PENDING,
+            amount: 50000,
+            expiresAt: $now->modify('+1 day')
+        ));
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-done',
+            paymentNumber: 'PAY-DONE',
+            payable: new PayableReference('order', 'ord-done'),
+            status: PaymentStatus::COMPLETED,
+            amount: 50000,
+            paidAmount: new Money(50000, 'IDR'),
+            expiresAt: $now->modify('+1 minute')
+        ));
+
+        $result = $this->pdoPaymentRepository->findPendingExpiringBefore($cutoff);
+        $ids = array_map(static fn (Payment $payment): string => $payment->id, $result);
+
+        $this->assertCount(2, $result);
+        $this->assertContains('pay-near', $ids);
+        $this->assertContains('pay-past', $ids);
+    }
+
+    public function test_gateway_reconciliation_with_pdo_syncs_status(): void
+    {
+        $now = new DateTimeImmutable('2026-10-17 12:00:00');
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-rec-pdo-1',
+            paymentNumber: 'PAY-REC-PDO-1',
+            payable: new PayableReference('order', 'ord-rec-pdo-1'),
+            gatewayProvider: 'mock',
+            status: PaymentStatus::PENDING,
+            amount: 100000,
+            expiresAt: $now->modify('+1 minute')
+        ));
+
+        $this->pdoPaymentAttemptRepository->save(new PaymentAttempt(
+            id: 'att-rec-pdo-1',
+            paymentId: 'pay-rec-pdo-1',
+            gatewayProvider: 'mock',
+            transactionReference: 'mock_tx_rec_pdo_1',
+            status: AttemptStatus::PENDING,
+            amount: new Money(100000, 'IDR')
+        ));
+
+        $gatewayManager = new GatewayManager;
+        $gatewayManager->register(new MockPaymentGateway('mock'));
+
+        $paymentStatusService = new PaymentStatusService(
+            $this->pdoPaymentRepository,
+            $this->pdoPaymentHistoryRepository,
+            pdo: $this->pdo
+        );
+
+        $reconciliationService = new GatewayReconciliationService(
+            $gatewayManager,
+            $this->pdoPaymentRepository,
+            $this->pdoPaymentAttemptRepository,
+            $paymentStatusService,
+            $this->pdo
+        );
+
+        $reconciled = $reconciliationService->reconcile($now->modify('+5 minutes'));
+
+        $this->assertCount(1, $reconciled);
+
+        $fresh = $this->pdoPaymentRepository->findById('pay-rec-pdo-1');
+        $this->assertNotNull($fresh);
+        $this->assertEquals(PaymentStatus::COMPLETED, $fresh->status);
+
+        $attempt = $this->pdoPaymentAttemptRepository->findByTransactionReference('mock', 'mock_tx_rec_pdo_1');
+        $this->assertNotNull($attempt);
+        $this->assertEquals(AttemptStatus::SUCCESSFUL, $attempt->status);
     }
 
     public function test_status_change_persists_with_pdo_transaction(): void

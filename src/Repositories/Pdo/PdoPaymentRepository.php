@@ -102,6 +102,18 @@ class PdoPaymentRepository implements PaymentRepositoryInterface
         return array_map($this->mapToEntity(...), $rows);
     }
 
+    public function findPendingExpiringBefore(DateTimeImmutable $cutoff): array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM payments WHERE status = :status AND expires_at IS NOT NULL AND expires_at <= :cutoff ORDER BY expires_at ASC');
+        $stmt->execute([
+            'status' => PaymentStatus::PENDING->value,
+            'cutoff' => $cutoff->format('Y-m-d H:i:s'),
+        ]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        return array_map($this->mapToEntity(...), $rows);
+    }
+
     public function findByPayable(string $payableType, string $payableId): array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM payments WHERE payable_type = :payable_type AND payable_id = :payable_id ORDER BY created_at DESC');
