@@ -5,7 +5,7 @@ All notable changes to `ttpryg/payment-engine` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.1.0] - 2026-10-18
 
 ### Added
 
@@ -83,6 +83,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documented the recommended asynchronous webhook ingestion architecture
   (acknowledge → enqueue → background worker) in README §7.1, including queue options,
   worker wiring, listener guidance, and idempotency guarantees.
+
+### Tests
+
+- Added `PaymentEdgeCaseTest` integration coverage: TOCTOU webhook race resolved by the
+  database unique constraint (no-op, no duplicate history/events), a partial-refund
+  ladder that reaches exactly `paid_amount` then rejects overflow, and reconciliation
+  gracefully skipping a payment when the real Midtrans driver hits a transport timeout.
 
 ## [1.0.1] - 2026-09-28
 
