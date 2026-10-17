@@ -121,7 +121,7 @@ class WebhookProcessorService
 
         // 5. Update Status & Audit History
         if ($webhookVerificationResult->mappedStatus instanceof PaymentStatus) {
-            $this->paymentStatusService->changeStatus(
+            $payment = $this->paymentStatusService->changeStatus(
                 payment: $payment,
                 targetStatus: $webhookVerificationResult->mappedStatus,
                 actorType: 'gateway',

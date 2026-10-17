@@ -43,57 +43,68 @@ class PaymentStatusService
         ?array $metadata = null,
         ?Money $paidAmount = null
     ): Payment {
-        if ($payment->status === $targetStatus) {
-            return $payment;
-        }
+        $fromStatus = null;
 
-        if (! $payment->status->canTransitionTo($targetStatus)) {
-            throw InvalidStatusTransitionException::create($payment->status, $targetStatus);
-        }
+        $updatedPayment = $this->runInTransaction(
+            $this->pdo,
+            function () use ($payment, $targetStatus, $actorType, $actorId, $note, $metadata, $paidAmount, &$fromStatus): Payment {
+                // Acquire a pessimistic lock on the row so concurrent
+                // transitions read the latest committed state.
+                $lockedPayment = $this->paymentRepository->findByIdForUpdate($payment->id) ?? $payment;
 
-        $fromStatus = $payment->status;
-        $payment->status = $targetStatus;
-        $payment->updatedAt = new DateTimeImmutable;
+                if ($lockedPayment->status === $targetStatus) {
+                    return $lockedPayment;
+                }
 
-        if ($targetStatus === PaymentStatus::COMPLETED) {
-            $payment->paidAt = new DateTimeImmutable;
-            if ($paidAmount instanceof Money) {
-                $payment->paidAmount = $paidAmount;
-            } elseif ($payment->paidAmount->isZero()) {
-                $payment->paidAmount = $payment->totalAmount;
+                if (! $lockedPayment->status->canTransitionTo($targetStatus)) {
+                    throw InvalidStatusTransitionException::create($lockedPayment->status, $targetStatus);
+                }
+
+                $fromStatus = $lockedPayment->status;
+                $lockedPayment->status = $targetStatus;
+                $lockedPayment->updatedAt = new DateTimeImmutable;
+
+                if ($targetStatus === PaymentStatus::COMPLETED) {
+                    $lockedPayment->paidAt = new DateTimeImmutable;
+                    if ($paidAmount instanceof Money) {
+                        $lockedPayment->paidAmount = $paidAmount;
+                    } elseif ($lockedPayment->paidAmount->isZero()) {
+                        $lockedPayment->paidAmount = $lockedPayment->totalAmount;
+                    }
+                }
+
+                $paymentHistory = new PaymentHistory(
+                    id: 'pay-hist-'.bin2hex(random_bytes(8)),
+                    paymentId: $lockedPayment->id,
+                    action: PaymentHistoryAction::STATUS_CHANGED,
+                    fromStatus: $fromStatus,
+                    toStatus: $targetStatus,
+                    actorType: $actorType,
+                    actorId: $actorId,
+                    note: $note,
+                    metadata: $metadata
+                );
+
+                $this->paymentRepository->save($lockedPayment);
+                $this->paymentHistoryRepository->save($paymentHistory);
+
+                return $lockedPayment;
             }
-        }
-
-        $paymentHistory = new PaymentHistory(
-            id: 'pay-hist-'.bin2hex(random_bytes(8)),
-            paymentId: $payment->id,
-            action: PaymentHistoryAction::STATUS_CHANGED,
-            fromStatus: $fromStatus,
-            toStatus: $targetStatus,
-            actorType: $actorType,
-            actorId: $actorId,
-            note: $note,
-            metadata: $metadata
         );
 
-        $this->runInTransaction($this->pdo, function () use ($payment, $paymentHistory): void {
-            $this->paymentRepository->save($payment);
-            $this->paymentHistoryRepository->save($paymentHistory);
-        });
-
-        if ($this->eventDispatcher instanceof EventDispatcherInterface) {
-            $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($payment, $fromStatus, $targetStatus));
+        if ($fromStatus instanceof PaymentStatus && $this->eventDispatcher instanceof EventDispatcherInterface) {
+            $this->eventDispatcher->dispatch(new PaymentStatusChangedEvent($updatedPayment, $fromStatus, $targetStatus));
 
             match ($targetStatus) {
-                PaymentStatus::COMPLETED => $this->eventDispatcher->dispatch(new PaymentCompletedEvent($payment)),
-                PaymentStatus::FAILED => $this->eventDispatcher->dispatch(new PaymentFailedEvent($payment, $note)),
-                PaymentStatus::EXPIRED => $this->eventDispatcher->dispatch(new PaymentExpiredEvent($payment)),
-                PaymentStatus::CANCELLED => $this->eventDispatcher->dispatch(new PaymentCancelledEvent($payment, $note)),
+                PaymentStatus::COMPLETED => $this->eventDispatcher->dispatch(new PaymentCompletedEvent($updatedPayment)),
+                PaymentStatus::FAILED => $this->eventDispatcher->dispatch(new PaymentFailedEvent($updatedPayment, $note)),
+                PaymentStatus::EXPIRED => $this->eventDispatcher->dispatch(new PaymentExpiredEvent($updatedPayment)),
+                PaymentStatus::CANCELLED => $this->eventDispatcher->dispatch(new PaymentCancelledEvent($updatedPayment, $note)),
                 default => null,
             };
         }
 
-        return $payment;
+        return $updatedPayment;
     }
 
     public function complete(string $paymentId, ?Money $paidAmount = null, ?string $actorType = null, ?string $actorId = null, ?string $note = null): Payment

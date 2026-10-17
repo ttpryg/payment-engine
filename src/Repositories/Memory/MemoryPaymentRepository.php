@@ -22,6 +22,11 @@ class MemoryPaymentRepository implements PaymentRepositoryInterface
         return $this->payments[$id] ?? null;
     }
 
+    public function findByIdForUpdate(string $id): ?Payment
+    {
+        return $this->findById($id);
+    }
+
     public function findByPaymentNumber(string $paymentNumber): ?Payment
     {
         foreach ($this->payments as $payment) {

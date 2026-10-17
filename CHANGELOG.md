@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   joins an already-active transaction (PDO has no nested transactions).
 - Optional `?PDO $pdo` dependency on `PaymentStatusService`, `PaymentRefundService`,
   and `WebhookProcessorService` to enable ACID transaction wrapping.
+- `PaymentRepositoryInterface::findByIdForUpdate()` (implemented by the PDO and Memory
+  repositories) which issues `SELECT ... FOR UPDATE` while a transaction is active,
+  falling back to a plain read when no transaction is active or the driver does not
+  support row locking (SQLite).
 
 ### Changed
 
@@ -38,6 +42,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   commit.
 - `PaymentService` now reuses the shared `ManagesTransactions` trait instead of its own
   private transaction helper.
+- `PaymentStatusService::changeStatus()` and `PaymentRefundService::issueRefund()` now
+  lock and reload the payment row inside the transaction before validating, so
+  concurrent transitions/refunds operate on the latest committed state.
+- `WebhookProcessorService` now continues processing with the payment instance returned
+  by the (locked) status change.
 
 ### Fixed
 
@@ -45,6 +54,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   both pass the application-level idempotency checks and be recorded twice.
 - Eliminated partial writes (inconsistent database state) when audit history
   persistence fails after a payment, attempt, or refund write.
+- Eliminated lost updates and over-refunds caused by concurrent status changes or
+  refund requests reading stale payment rows (pessimistic locking).
 
 ## [1.0.1] - 2026-09-28
 
