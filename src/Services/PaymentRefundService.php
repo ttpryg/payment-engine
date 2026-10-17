@@ -44,65 +44,75 @@ class PaymentRefundService
         ?string $actorType = null,
         ?string $actorId = null
     ): PaymentRefund {
-        $payment = $this->paymentRepository->findById($paymentId);
-        if (! $payment instanceof Payment) {
-            throw PaymentNotFoundException::forId($paymentId);
-        }
+        $payment = null;
+        $isFullRefund = false;
 
-        if (! $payment->canRefund($money)) {
-            throw RefundAmountExceededException::create($money, $payment->getRefundableAmount());
-        }
+        $paymentRefund = $this->runInTransaction(
+            $this->pdo,
+            function () use ($paymentId, $money, $reason, $actorType, $actorId, &$payment, &$isFullRefund): PaymentRefund {
+                // Lock the payment row and re-validate against the latest
+                // committed balance to prevent concurrent over-refunds.
+                $payment = $this->paymentRepository->findByIdForUpdate($paymentId);
+                if (! $payment instanceof Payment) {
+                    throw PaymentNotFoundException::forId($paymentId);
+                }
 
-        $gatewayRefundId = null;
-        if ($this->gatewayManager instanceof GatewayManager && $this->gatewayManager->has($payment->gatewayProvider)) {
-            $gateway = $this->gatewayManager->get($payment->gatewayProvider);
-            $gatewayResponse = $gateway->refund($payment, $money, $reason);
-            $gatewayRefundId = $gatewayResponse->gatewayRefundId;
-        }
+                if (! $payment->canRefund($money)) {
+                    throw RefundAmountExceededException::create($money, $payment->getRefundableAmount());
+                }
 
-        $refundId = 'ref-'.bin2hex(random_bytes(8));
-        $refundNumber = 'RFD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+                $gatewayRefundId = null;
+                if ($this->gatewayManager instanceof GatewayManager && $this->gatewayManager->has($payment->gatewayProvider)) {
+                    $gateway = $this->gatewayManager->get($payment->gatewayProvider);
+                    $gatewayResponse = $gateway->refund($payment, $money, $reason);
+                    $gatewayRefundId = $gatewayResponse->gatewayRefundId;
+                }
 
-        $paymentRefund = new PaymentRefund(
-            id: $refundId,
-            paymentId: $payment->id,
-            refundNumber: $refundNumber,
-            amount: $money,
-            reason: $reason,
-            status: RefundStatus::COMPLETED,
-            gatewayRefundId: $gatewayRefundId,
-            actorType: $actorType,
-            actorId: $actorId
+                $refundId = 'ref-'.bin2hex(random_bytes(8));
+                $refundNumber = 'RFD-'.date('Ymd').'-'.strtoupper(substr(bin2hex(random_bytes(4)), 0, 6));
+
+                $paymentRefund = new PaymentRefund(
+                    id: $refundId,
+                    paymentId: $payment->id,
+                    refundNumber: $refundNumber,
+                    amount: $money,
+                    reason: $reason,
+                    status: RefundStatus::COMPLETED,
+                    gatewayRefundId: $gatewayRefundId,
+                    actorType: $actorType,
+                    actorId: $actorId
+                );
+
+                $fromStatus = $payment->status;
+                $payment->refundedAmount = $payment->refundedAmount->add($money);
+
+                $isFullRefund = $payment->refundedAmount->isGreaterThanOrEqual($payment->paidAmount);
+                $targetStatus = $isFullRefund ? PaymentStatus::REFUNDED : PaymentStatus::PARTIALLY_REFUNDED;
+
+                $payment->status = $targetStatus;
+                $payment->updatedAt = new DateTimeImmutable;
+
+                $paymentHistory = new PaymentHistory(
+                    id: 'pay-hist-'.bin2hex(random_bytes(8)),
+                    paymentId: $payment->id,
+                    action: PaymentHistoryAction::REFUND_ISSUED,
+                    fromStatus: $fromStatus,
+                    toStatus: $targetStatus,
+                    actorType: $actorType,
+                    actorId: $actorId,
+                    note: "Refund issued: {$money->amount} {$money->currency}. Reason: {$reason}",
+                    metadata: ['refund_id' => $paymentRefund->id, 'refund_number' => $paymentRefund->refundNumber]
+                );
+
+                $this->paymentRefundRepository->save($paymentRefund);
+                $this->paymentRepository->save($payment);
+                $this->paymentHistoryRepository->save($paymentHistory);
+
+                return $paymentRefund;
+            }
         );
 
-        $fromStatus = $payment->status;
-        $payment->refundedAmount = $payment->refundedAmount->add($money);
-
-        $isFullRefund = $payment->refundedAmount->isGreaterThanOrEqual($payment->paidAmount);
-        $targetStatus = $isFullRefund ? PaymentStatus::REFUNDED : PaymentStatus::PARTIALLY_REFUNDED;
-
-        $payment->status = $targetStatus;
-        $payment->updatedAt = new DateTimeImmutable;
-
-        $paymentHistory = new PaymentHistory(
-            id: 'pay-hist-'.bin2hex(random_bytes(8)),
-            paymentId: $payment->id,
-            action: PaymentHistoryAction::REFUND_ISSUED,
-            fromStatus: $fromStatus,
-            toStatus: $targetStatus,
-            actorType: $actorType,
-            actorId: $actorId,
-            note: "Refund issued: {$money->amount} {$money->currency}. Reason: {$reason}",
-            metadata: ['refund_id' => $paymentRefund->id, 'refund_number' => $paymentRefund->refundNumber]
-        );
-
-        $this->runInTransaction($this->pdo, function () use ($paymentRefund, $payment, $paymentHistory): void {
-            $this->paymentRefundRepository->save($paymentRefund);
-            $this->paymentRepository->save($payment);
-            $this->paymentHistoryRepository->save($paymentHistory);
-        });
-
-        if ($this->eventDispatcher instanceof EventDispatcherInterface) {
+        if ($this->eventDispatcher instanceof EventDispatcherInterface && $payment instanceof Payment) {
             if ($isFullRefund) {
                 $this->eventDispatcher->dispatch(new PaymentRefundedEvent($payment, $paymentRefund));
             } else {

@@ -25,6 +25,7 @@ In modern microservices and modular monolithic architectures, handling payments 
 - **Strict State Machine**: Enforces valid status transitions across the entire payment lifecycle (`pending`, `authorized`, `captured`, `completed`, `failed`, `cancelled`, `expired`, `partially_refunded`, `refunded`).
 - **Partial & Full Refunds**: Verifies that refund requests never exceed the remaining refundable `paid_amount`.
 - **ACID Transactional Mutations**: When a `PDO` connection is provided, status changes, refunds, and webhook processing run inside a transaction so payment, refund, attempt, and audit writes either commit together or roll back atomically.
+- **Pessimistic Row Locking**: Critical mutations acquire a `SELECT ... FOR UPDATE` row lock inside the transaction (via `findByIdForUpdate()`) to prevent concurrent over-refunds and lost status updates. Drivers without row-lock support (e.g. SQLite) fall back to a plain read.
 - **Append-Only Audit History**: Tracks every critical transition and webhook with `actor_type`, `actor_id`, and structured `metadata`.
 - **PSR-14 Domain Events**: Dispatches standardized domain events (`PaymentCreatedEvent`, `PaymentStatusChangedEvent`, `PaymentCompletedEvent`, `PaymentRefundedEvent`, etc.).
 - **Multiple Storage Drivers**: Clean separation via PDO (MariaDB, MySQL, SQLite) & In-Memory drivers for ultra-fast unit testing.
@@ -177,6 +178,8 @@ $refund = $refundService->issueRefund(
 ```
 
 If a refund request exceeds the remaining refundable amount, a `RefundAmountExceededException` is thrown.
+
+When a `PDO` connection is supplied, refund issuance first locks the payment row (`SELECT ... FOR UPDATE`) and re-validates the refundable balance against the latest committed state, so two concurrent refund requests can never overshoot the paid amount.
 
 ---
 

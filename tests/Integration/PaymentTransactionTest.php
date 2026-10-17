@@ -16,6 +16,7 @@ use Ttpryg\PaymentEngine\Enums\PaymentStatus;
 use Ttpryg\PaymentEngine\Gateways\GatewayManager;
 use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentAttemptRepository;
+use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
@@ -35,6 +36,8 @@ class PaymentTransactionTest extends TestCase
 
     private PdoPaymentRefundRepository $pdoPaymentRefundRepository;
 
+    private PdoPaymentHistoryRepository $pdoPaymentHistoryRepository;
+
     private PdoWebhookEventRepository $pdoWebhookEventRepository;
 
     protected function setUp(): void
@@ -48,7 +51,89 @@ class PaymentTransactionTest extends TestCase
         $this->pdoPaymentRepository = new PdoPaymentRepository($this->pdo);
         $this->pdoPaymentAttemptRepository = new PdoPaymentAttemptRepository($this->pdo);
         $this->pdoPaymentRefundRepository = new PdoPaymentRefundRepository($this->pdo);
+        $this->pdoPaymentHistoryRepository = new PdoPaymentHistoryRepository($this->pdo);
         $this->pdoWebhookEventRepository = new PdoWebhookEventRepository($this->pdo);
+    }
+
+    public function test_find_by_id_for_update_returns_payment_within_transaction(): void
+    {
+        $payment = new Payment(
+            id: 'pay-lock-1',
+            paymentNumber: 'PAY-LOCK-1',
+            payable: new PayableReference('order', 'ord-lock-1'),
+            status: PaymentStatus::PENDING,
+            amount: 100000
+        );
+        $this->pdoPaymentRepository->save($payment);
+
+        $this->pdo->beginTransaction();
+        $locked = $this->pdoPaymentRepository->findByIdForUpdate('pay-lock-1');
+        $this->pdo->rollBack();
+
+        $this->assertNotNull($locked);
+        $this->assertEquals('pay-lock-1', $locked->id);
+        $this->assertNull($this->pdoPaymentRepository->findByIdForUpdate('pay-lock-missing'));
+    }
+
+    public function test_status_change_persists_with_pdo_transaction(): void
+    {
+        $payment = new Payment(
+            id: 'pay-tx-ok-status',
+            paymentNumber: 'PAY-TX-OK-STATUS',
+            payable: new PayableReference('order', 'ord-tx-ok-status'),
+            status: PaymentStatus::PENDING,
+            amount: 100000
+        );
+        $this->pdoPaymentRepository->save($payment);
+
+        $paymentStatusService = new PaymentStatusService(
+            $this->pdoPaymentRepository,
+            $this->pdoPaymentHistoryRepository,
+            pdo: $this->pdo
+        );
+
+        $updated = $paymentStatusService->complete('pay-tx-ok-status');
+
+        $this->assertEquals(PaymentStatus::COMPLETED, $updated->status);
+
+        $fresh = $this->pdoPaymentRepository->findById('pay-tx-ok-status');
+        $this->assertNotNull($fresh);
+        $this->assertEquals(PaymentStatus::COMPLETED, $fresh->status);
+        $this->assertEquals(100000, $fresh->paidAmount->amount);
+        $this->assertCount(1, $this->pdoPaymentHistoryRepository->findByPaymentId('pay-tx-ok-status'));
+    }
+
+    public function test_refund_persists_with_pdo_transaction(): void
+    {
+        $payment = new Payment(
+            id: 'pay-tx-ok-refund',
+            paymentNumber: 'PAY-TX-OK-REFUND',
+            payable: new PayableReference('order', 'ord-tx-ok-refund'),
+            gatewayProvider: 'mock',
+            status: PaymentStatus::COMPLETED,
+            amount: 100000,
+            paidAmount: new Money(100000, 'IDR')
+        );
+        $this->pdoPaymentRepository->save($payment);
+
+        $paymentRefundService = new PaymentRefundService(
+            $this->pdoPaymentRepository,
+            $this->pdoPaymentRefundRepository,
+            $this->pdoPaymentHistoryRepository,
+            null,
+            null,
+            $this->pdo
+        );
+
+        $refund = $paymentRefundService->issueRefund('pay-tx-ok-refund', new Money(40000, 'IDR'), reason: 'Partial return');
+
+        $this->assertEquals(40000, $refund->amount->amount);
+
+        $fresh = $this->pdoPaymentRepository->findById('pay-tx-ok-refund');
+        $this->assertNotNull($fresh);
+        $this->assertEquals(PaymentStatus::PARTIALLY_REFUNDED, $fresh->status);
+        $this->assertEquals(40000, $fresh->refundedAmount->amount);
+        $this->assertCount(1, $this->pdoPaymentRefundRepository->findByPaymentId('pay-tx-ok-refund'));
     }
 
     public function test_status_change_rolls_back_when_history_persistence_fails(): void

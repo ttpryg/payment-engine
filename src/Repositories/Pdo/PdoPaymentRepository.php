@@ -66,6 +66,21 @@ class PdoPaymentRepository implements PaymentRepositoryInterface
         return $row ? $this->mapToEntity($row) : null;
     }
 
+    public function findByIdForUpdate(string $id): ?Payment
+    {
+        $sql = 'SELECT * FROM payments WHERE id = :id';
+
+        if ($this->pdo->inTransaction() && $this->supportsRowLocking()) {
+            $sql .= ' FOR UPDATE';
+        }
+
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['id' => $id]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ? $this->mapToEntity($row) : null;
+    }
+
     public function findByPaymentNumber(string $paymentNumber): ?Payment
     {
         $stmt = $this->pdo->prepare('SELECT * FROM payments WHERE payment_number = :payment_number');
@@ -98,6 +113,11 @@ class PdoPaymentRepository implements PaymentRepositoryInterface
         $stmt = $this->pdo->prepare('DELETE FROM payments WHERE id = :id');
 
         return $stmt->execute(['id' => $id]);
+    }
+
+    private function supportsRowLocking(): bool
+    {
+        return $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite';
     }
 
     private function mapToEntity(array $row): Payment
