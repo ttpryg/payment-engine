@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Contracts;
 
+use DateTimeImmutable;
 use Ttpryg\PaymentEngine\Entities\Payment;
 
 interface PaymentRepositoryInterface
@@ -21,6 +22,13 @@ interface PaymentRepositoryInterface
     public function findByIdForUpdate(string $id): ?Payment;
 
     public function findByPaymentNumber(string $paymentNumber): ?Payment;
+
+    /**
+     * Find pending payments whose `expires_at` is before the given cutoff.
+     *
+     * @return Payment[]
+     */
+    public function findPendingExpired(DateTimeImmutable $cutoff): array;
 
     /**
      * @return Payment[]

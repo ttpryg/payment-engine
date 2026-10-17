@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Tests\Integration;
 
+use DateTimeImmutable;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -73,6 +74,52 @@ class PaymentTransactionTest extends TestCase
         $this->assertNotNull($locked);
         $this->assertEquals('pay-lock-1', $locked->id);
         $this->assertNull($this->pdoPaymentRepository->findByIdForUpdate('pay-lock-missing'));
+    }
+
+    public function test_find_pending_expired_returns_only_overdue_pending_payments(): void
+    {
+        $now = new DateTimeImmutable('2026-10-17 12:00:00');
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-exp-pdo-1',
+            paymentNumber: 'PAY-EXP-PDO-1',
+            payable: new PayableReference('order', 'ord-exp-pdo-1'),
+            status: PaymentStatus::PENDING,
+            amount: 50000,
+            expiresAt: $now->modify('-1 hour')
+        ));
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-exp-pdo-2',
+            paymentNumber: 'PAY-EXP-PDO-2',
+            payable: new PayableReference('order', 'ord-exp-pdo-2'),
+            status: PaymentStatus::PENDING,
+            amount: 50000,
+            expiresAt: $now->modify('+1 hour')
+        ));
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-exp-pdo-3',
+            paymentNumber: 'PAY-EXP-PDO-3',
+            payable: new PayableReference('order', 'ord-exp-pdo-3'),
+            status: PaymentStatus::PENDING,
+            amount: 50000
+        ));
+
+        $this->pdoPaymentRepository->save(new Payment(
+            id: 'pay-exp-pdo-4',
+            paymentNumber: 'PAY-EXP-PDO-4',
+            payable: new PayableReference('order', 'ord-exp-pdo-4'),
+            status: PaymentStatus::COMPLETED,
+            amount: 50000,
+            paidAmount: new Money(50000, 'IDR'),
+            expiresAt: $now->modify('-2 hours')
+        ));
+
+        $result = $this->pdoPaymentRepository->findPendingExpired($now);
+
+        $this->assertCount(1, $result);
+        $this->assertSame('pay-exp-pdo-1', $result[0]->id);
     }
 
     public function test_status_change_persists_with_pdo_transaction(): void

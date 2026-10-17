@@ -23,6 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   repositories) which issues `SELECT ... FOR UPDATE` while a transaction is active,
   falling back to a plain read when no transaction is active or the driver does not
   support row locking (SQLite).
+- `PaymentRepositoryInterface::findPendingExpired()` (implemented by the PDO and Memory
+  repositories) to fetch pending payments whose `expires_at` is before a given cutoff.
+- `PaymentExpirationService` with `expireOverdue()` and `countExpirable()` for
+  auto-cancelling overdue pending payments from a scheduled worker/cron. Payments that
+  changed state after the snapshot query are skipped instead of aborting the batch.
 
 ### Changed
 

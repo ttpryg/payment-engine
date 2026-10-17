@@ -26,6 +26,7 @@ In modern microservices and modular monolithic architectures, handling payments 
 - **Partial & Full Refunds**: Verifies that refund requests never exceed the remaining refundable `paid_amount`.
 - **ACID Transactional Mutations**: When a `PDO` connection is provided, status changes, refunds, and webhook processing run inside a transaction so payment, refund, attempt, and audit writes either commit together or roll back atomically.
 - **Pessimistic Row Locking**: Critical mutations acquire a `SELECT ... FOR UPDATE` row lock inside the transaction (via `findByIdForUpdate()`) to prevent concurrent over-refunds and lost status updates. Drivers without row-lock support (e.g. SQLite) fall back to a plain read.
+- **Payment Expiration & Auto-Cancel**: `PaymentExpirationService` finds pending payments past their `expires_at` and transitions them to `expired`, ready to be driven by a cron or scheduled worker.
 - **Append-Only Audit History**: Tracks every critical transition and webhook with `actor_type`, `actor_id`, and structured `metadata`.
 - **PSR-14 Domain Events**: Dispatches standardized domain events (`PaymentCreatedEvent`, `PaymentStatusChangedEvent`, `PaymentCompletedEvent`, `PaymentRefundedEvent`, etc.).
 - **Multiple Storage Drivers**: Clean separation via PDO (MariaDB, MySQL, SQLite) & In-Memory drivers for ultra-fast unit testing.
@@ -183,7 +184,27 @@ When a `PDO` connection is supplied, refund issuance first locks the payment row
 
 ---
 
-## 🗄️ 9. Database Schema
+## ⏳ 9. Payment Expiration & Auto-Cancel
+
+Pending payments that pass their `expires_at` timestamp can be swept automatically:
+
+```php
+use Ttpryg\PaymentEngine\Services\PaymentExpirationService;
+
+$expirationService = new PaymentExpirationService($paymentRepo, $statusService);
+
+// Transition every pending payment whose expires_at is in the past.
+$expired = $expirationService->expireOverdue();
+
+// Preview how many are eligible without mutating anything.
+$count = $expirationService->countExpirable();
+```
+
+`expireOverdue()` uses `PaymentRepositoryInterface::findPendingExpired()` and calls `PaymentStatusService::expire()` for each candidate. Payments that changed state (completed or cancelled) between the snapshot query and the transition are skipped so a single batch never aborts. Invoke it from your framework scheduler, cron entry, or queue worker (for example, once per minute).
+
+---
+
+## 🗄️ 10. Database Schema
 
 Run the SQL script from `database/schema.sql`:
 
@@ -283,7 +304,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_event_id ON webhook_events (gateway
 
 ---
 
-## 🚀 10. Quick Usage Example
+## 🚀 11. Quick Usage Example
 
 ```php
 use PDO;
@@ -296,6 +317,7 @@ use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
+use Ttpryg\PaymentEngine\Services\PaymentExpirationService;
 use Ttpryg\PaymentEngine\Services\PaymentRefundService;
 use Ttpryg\PaymentEngine\Services\PaymentService;
 use Ttpryg\PaymentEngine\Services\PaymentStatusService;
@@ -322,6 +344,7 @@ $statusService    = new PaymentStatusService($paymentRepo, $historyRepo, pdo: $p
 $paymentService   = new PaymentService($paymentRepo, $attemptRepo, $historyRepo, $gatewayManager, $statusService, pdo: $pdo);
 $refundService    = new PaymentRefundService($paymentRepo, $refundRepo, $historyRepo, $gatewayManager, pdo: $pdo);
 $webhookProcessor = new WebhookProcessorService($gatewayManager, $webhookRepo, $paymentRepo, $attemptRepo, $historyRepo, $statusService, pdo: $pdo);
+$expirationService = new PaymentExpirationService($paymentRepo, $statusService);
 
 // 4. Create Payment
 $payment = $paymentService->createPayment(
@@ -341,11 +364,14 @@ $webhookProcessor->process('mock', [
     'status' => 'completed',
     'paid_amount' => 251500,
 ]);
+
+// 6. Expire overdue pending payments (run from a scheduled worker/cron)
+$expiredPayments = $expirationService->expireOverdue();
 ```
 
 ---
 
-## 🧪 11. Testing
+## 🧪 12. Testing
 
 Run tests with PHPUnit:
 
@@ -362,6 +388,6 @@ docker compose exec app vendor/bin/phpunit
 
 ---
 
-## 📄 12. License
+## 📄 13. License
 
 MIT License.
