@@ -18,6 +18,9 @@
         "phpunit/phpunit": "^10.0",
         "rector/rector": "^2.0"
     },
+    "suggest": {
+        "ext-curl": "Required to use the bundled CurlHttpClient for the real Midtrans/Xendit gateway drivers"
+    },
     "autoload": {
         "psr-4": {
             "Ttpryg\\PaymentEngine\\": "src/"
