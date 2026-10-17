@@ -34,6 +34,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `PaymentGatewayInterface::checkStatus()` for pending payments nearing expiry, recover
   dropped webhooks, and sync local payment/attempt status. Gateway/network failures and
   concurrently-updated payments are skipped.
+- `HttpClientInterface` and `HttpResponse` DTO providing a pluggable HTTP transport
+  abstraction, plus a dependency-free `CurlHttpClient` implementation and
+  `HttpClientException` for transport failures.
+- `AbstractHttpGateway` base class (JSON requests, Basic auth, constant-time helpers,
+  error extraction) for HTTP-based gateway drivers.
+- `MidtransGateway` implementing `PaymentGatewayInterface` for the Midtrans Snap + Core
+  APIs (sandbox/production), including SHA-512 `signature_key` webhook verification and
+  payment status mapping.
+- `XenditGateway` implementing `PaymentGatewayInterface` for the Xendit Invoice + Refund
+  APIs, including constant-time `x-callback-token` webhook verification and status mapping.
 
 ### Changed
 

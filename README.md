@@ -21,6 +21,9 @@ In modern microservices and modular monolithic architectures, handling payments 
 - **Built-in Gateway Drivers**:
   - `MockPaymentGateway`: Predictable driver for unit tests, CI/CD, and local sandboxes.
   - `ManualTransferGateway`: Built-in driver for manual bank transfers, cash on delivery (COD), or offline payments.
+  - `MidtransGateway`: Real Midtrans Snap + Core API driver (sandbox/production) with SHA-512 `signature_key` webhook verification.
+  - `XenditGateway`: Real Xendit Invoice + Refund API driver with constant-time `x-callback-token` webhook verification.
+- **Pluggable HTTP Transport**: Real drivers communicate through the `HttpClientInterface` abstraction (a bundled `CurlHttpClient` is the default), so you can swap in your own client, add retries/logging, or inject a fake without touching the driver.
 - **Robust Webhook Idempotency**: Prevents duplicate executions, double settlements, or duplicate history entries using gateway `event_id` and SHA-256 `payload_fingerprint`.
 - **Async-Ready Webhook Ingestion**: A recommendation for acknowledging gateways immediately, queueing the raw delivery, and processing status updates/events in a background worker (see [§7.1](#71-asynchronous-webhook-ingestion-recommended)).
 - **Strict State Machine**: Enforces valid status transitions across the entire payment lifecycle (`pending`, `authorized`, `captured`, `completed`, `failed`, `cancelled`, `expired`, `partially_refunded`, `refunded`).
@@ -97,30 +100,29 @@ use Ttpryg\PaymentEngine\DTOs\WebhookVerificationResult;
 use Ttpryg\PaymentEngine\Entities\Payment;
 use Ttpryg\PaymentEngine\ValueObjects\Money;
 
-class XenditPaymentGateway implements PaymentGatewayInterface
+class CustomPaymentGateway implements PaymentGatewayInterface
 {
     public function getName(): string
     {
-        return 'xendit';
+        return 'custom';
     }
 
     public function createTransaction(Payment $payment, array $options = []): GatewayResponse
     {
-        // Call Xendit API using $payment->totalAmount->amount
+        // Call your gateway API using $payment->totalAmount->amount
         return new GatewayResponse(
             isSuccessful: true,
-            transactionReference: 'xendit_invoice_123',
-            redirectUrl: 'https://checkout.xendit.co/web/123'
+            transactionReference: 'tx_123',
+            redirectUrl: 'https://pay.example.com/checkout/123'
         );
     }
 
     public function verifyWebhook(array $payload, array $headers = []): WebhookVerificationResult
     {
-        // Validate signature token
+        // Validate the gateway signature/token, then map the status
         return new WebhookVerificationResult(
             isValid: true,
-            transactionReference: $payload['id'] ?? null,
-            eventId: $payload['event_id'] ?? null,
+            transactionReference: $payload['transaction_reference'] ?? null,
             mappedStatus: \Ttpryg\PaymentEngine\Enums\PaymentStatus::COMPLETED,
             paidAmount: new Money((int) $payload['paid_amount'], 'IDR')
         );
@@ -144,8 +146,62 @@ Register drivers using `GatewayManager`:
 $gatewayManager = new GatewayManager();
 $gatewayManager->register(new MockPaymentGateway('mock'));
 $gatewayManager->register(new ManualTransferGateway('manual'));
-$gatewayManager->register(new XenditPaymentGateway());
+
+// Real drivers (see below)
+$gatewayManager->register(new MidtransGateway(getenv('MIDTRANS_SERVER_KEY')));
+$gatewayManager->register(new XenditGateway(getenv('XENDIT_SECRET_KEY'), getenv('XENDIT_WEBHOOK_TOKEN')));
 ```
+
+### Built-in Real Gateway Drivers
+
+Two production drivers ship with the engine. Both extend `AbstractHttpGateway` and require only credentials; the bundled `CurlHttpClient` is used unless you inject your own `HttpClientInterface`.
+
+#### Midtrans (`MidtransGateway`)
+
+```php
+use Ttpryg\PaymentEngine\Gateways\MidtransGateway;
+
+$midtrans = new MidtransGateway(
+    serverKey: getenv('MIDTRANS_SERVER_KEY'),
+    isProduction: false, // sandbox by default
+);
+$gatewayManager->register($midtrans);
+```
+
+- `createTransaction()` calls the **Snap** API (`/snap/v1/transactions`) and exposes the hosted `redirect_url` plus `snap_token`.
+- `checkStatus()` queries `/v2/{order_id}/status`; the payment number is used as the Midtrans `order_id`.
+- `refund()` calls `/v2/{order_id}/refund` with a generated unique `refund_key`.
+- `verifyWebhook()` validates `signature_key` against `hash('sha512', order_id . status_code . gross_amount . serverKey)` using a **constant-time** comparison. Mapping: `settlement` and `capture` (with `fraud_status = accept`) → `COMPLETED`, `capture` (challenged) → `PENDING`, `deny` → `FAILED`, `cancel` → `CANCELLED`, `expire` → `EXPIRED`, `refund`/`partial_refund` → `REFUNDED`/`PARTIALLY_REFUNDED`.
+
+#### Xendit (`XenditGateway`)
+
+```php
+use Ttpryg\PaymentEngine\Gateways\XenditGateway;
+
+$xendit = new XenditGateway(
+    secretKey: getenv('XENDIT_SECRET_KEY'),
+    webhookToken: getenv('XENDIT_WEBHOOK_TOKEN'),
+);
+$gatewayManager->register($xendit);
+```
+
+- `createTransaction()` creates an invoice via `/v2/invoices`, stores the Xendit `invoice_id` in `payment->metadata['xendit_invoice_id']` (reused for refunds), and returns the `invoice_url`.
+- `checkStatus()` queries `/v2/invoices/{invoice_id}`.
+- `refund()` calls the unified `/refunds` endpoint with the stored `invoice_id`.
+- `verifyWebhook()` performs a **constant-time** (`hash_equals`) comparison of the `x-callback-token` header against the configured `webhookToken`. Mapping: `PAID`/`SETTLED` → `COMPLETED`, `EXPIRED` → `EXPIRED`, `FAILED` → `FAILED`, `PENDING` → `PENDING`.
+- A `PayerReference` whose type is `email` is automatically forwarded as the Xendit `payer_email`.
+
+### Custom HTTP Transport
+
+Every real driver accepts an optional `HttpClientInterface` as its third constructor argument:
+
+```php
+use Ttpryg\PaymentEngine\Http\CurlHttpClient;
+
+$gateway = new MidtransGateway($serverKey, false, new CurlHttpClient(timeout: 15));
+```
+
+Because drivers depend only on the `Ttpryg\PaymentEngine\Contracts\HttpClientInterface` abstraction, you can inject a PSR-18-backed adapter, add retries/logging, or supply a fake client in tests without modifying the driver. Transport failures surface as `GatewayException`.
 
 ---
 
