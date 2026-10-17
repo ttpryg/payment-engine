@@ -68,6 +68,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Eliminated lost updates and over-refunds caused by concurrent status changes or
   refund requests reading stale payment rows (pessimistic locking).
 
+### Documentation
+
+- Documented the recommended asynchronous webhook ingestion architecture
+  (acknowledge → enqueue → background worker) in README §7.1, including queue options,
+  worker wiring, listener guidance, and idempotency guarantees.
+
 ## [1.0.1] - 2026-09-28
 
 ### Fixed
