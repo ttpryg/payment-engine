@@ -31,6 +31,15 @@ interface PaymentRepositoryInterface
     public function findPendingExpired(DateTimeImmutable $cutoff): array;
 
     /**
+     * Find pending payments whose `expires_at` is at or before the given cutoff,
+     * i.e. payments approaching (or past) expiration that should be reconciled
+     * against the gateway before being auto-cancelled.
+     *
+     * @return Payment[]
+     */
+    public function findPendingExpiringBefore(DateTimeImmutable $cutoff): array;
+
+    /**
      * @return Payment[]
      */
     public function findByPayable(string $payableType, string $payableId): array;

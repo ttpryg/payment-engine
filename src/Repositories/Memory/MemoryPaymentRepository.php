@@ -54,6 +54,20 @@ class MemoryPaymentRepository implements PaymentRepositoryInterface
         return $result;
     }
 
+    public function findPendingExpiringBefore(DateTimeImmutable $cutoff): array
+    {
+        $result = [];
+        foreach ($this->payments as $payment) {
+            if ($payment->status === PaymentStatus::PENDING
+                && $payment->expiresAt instanceof DateTimeImmutable
+                && $payment->expiresAt <= $cutoff) {
+                $result[] = $payment;
+            }
+        }
+
+        return $result;
+    }
+
     public function findByPayable(string $payableType, string $payableId): array
     {
         $result = [];
