@@ -7,6 +7,7 @@ namespace Ttpryg\PaymentEngine\Services;
 use DateTimeImmutable;
 use PDO;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Ttpryg\PaymentEngine\Concerns\ManagesTransactions;
 use Ttpryg\PaymentEngine\Contracts\PaymentAttemptRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
@@ -27,6 +28,8 @@ use Ttpryg\PaymentEngine\ValueObjects\PaymentNumber;
 
 class PaymentService
 {
+    use ManagesTransactions;
+
     public function __construct(
         private readonly PaymentRepositoryInterface $paymentRepository,
         private readonly PaymentAttemptRepositoryInterface $paymentAttemptRepository,
@@ -105,7 +108,7 @@ class PaymentService
             metadata: ['gateway_provider' => $gatewayProvider]
         );
 
-        $this->executeInTransaction(function () use ($payment, $attempt, $paymentHistory): void {
+        $this->runInTransaction($this->pdo, function () use ($payment, $attempt, $paymentHistory): void {
             $this->paymentRepository->save($payment);
             if ($attempt instanceof PaymentAttempt) {
                 $this->paymentAttemptRepository->save($attempt);
@@ -175,21 +178,5 @@ class PaymentService
         $this->paymentHistoryRepository->save($paymentHistory);
 
         return $payment;
-    }
-
-    private function executeInTransaction(callable $callback): void
-    {
-        if ($this->pdo instanceof PDO && ! $this->pdo->inTransaction()) {
-            $this->pdo->beginTransaction();
-            try {
-                $callback();
-                $this->pdo->commit();
-            } catch (\Throwable $e) {
-                $this->pdo->rollBack();
-                throw $e;
-            }
-        } else {
-            $callback();
-        }
     }
 }

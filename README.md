@@ -24,6 +24,7 @@ In modern microservices and modular monolithic architectures, handling payments 
 - **Robust Webhook Idempotency**: Prevents duplicate executions, double settlements, or duplicate history entries using gateway `event_id` and SHA-256 `payload_fingerprint`.
 - **Strict State Machine**: Enforces valid status transitions across the entire payment lifecycle (`pending`, `authorized`, `captured`, `completed`, `failed`, `cancelled`, `expired`, `partially_refunded`, `refunded`).
 - **Partial & Full Refunds**: Verifies that refund requests never exceed the remaining refundable `paid_amount`.
+- **ACID Transactional Mutations**: When a `PDO` connection is provided, status changes, refunds, and webhook processing run inside a transaction so payment, refund, attempt, and audit writes either commit together or roll back atomically.
 - **Append-Only Audit History**: Tracks every critical transition and webhook with `actor_type`, `actor_id`, and structured `metadata`.
 - **PSR-14 Domain Events**: Dispatches standardized domain events (`PaymentCreatedEvent`, `PaymentStatusChangedEvent`, `PaymentCompletedEvent`, `PaymentRefundedEvent`, etc.).
 - **Multiple Storage Drivers**: Clean separation via PDO (MariaDB, MySQL, SQLite) & In-Memory drivers for ultra-fast unit testing.
@@ -314,10 +315,10 @@ $gatewayManager->register(new MockPaymentGateway('mock'));
 $gatewayManager->register(new ManualTransferGateway('manual'));
 
 // 3. Initialize Services
-$statusService    = new PaymentStatusService($paymentRepo, $historyRepo);
+$statusService    = new PaymentStatusService($paymentRepo, $historyRepo, pdo: $pdo);
 $paymentService   = new PaymentService($paymentRepo, $attemptRepo, $historyRepo, $gatewayManager, $statusService, pdo: $pdo);
-$refundService    = new PaymentRefundService($paymentRepo, $refundRepo, $historyRepo, $gatewayManager);
-$webhookProcessor = new WebhookProcessorService($gatewayManager, $webhookRepo, $paymentRepo, $attemptRepo, $historyRepo, $statusService);
+$refundService    = new PaymentRefundService($paymentRepo, $refundRepo, $historyRepo, $gatewayManager, pdo: $pdo);
+$webhookProcessor = new WebhookProcessorService($gatewayManager, $webhookRepo, $paymentRepo, $attemptRepo, $historyRepo, $statusService, pdo: $pdo);
 
 // 4. Create Payment
 $payment = $paymentService->createPayment(

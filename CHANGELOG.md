@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   window when a gateway delivers the same webhook concurrently.
 - `DuplicateWebhookException::forDuplicate()` factory to represent a duplicate
   detected by the database unique constraints (carries both event ID and fingerprint).
+- `ManagesTransactions` concern providing a shared `runInTransaction()` helper that
+  joins an already-active transaction (PDO has no nested transactions).
+- Optional `?PDO $pdo` dependency on `PaymentStatusService`, `PaymentRefundService`,
+  and `WebhookProcessorService` to enable ACID transaction wrapping.
 
 ### Changed
 
@@ -26,11 +30,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   without applying duplicate side-effects (status change, history, events).
 - README webhook idempotency section and database schema snippet updated to document
   the unique constraints.
+- `PaymentStatusService::changeStatus()`, `PaymentRefundService::issueRefund()`, and
+  `WebhookProcessorService::process()` now wrap their database mutations
+  (payment/attempt/refund/webhook/history writes) in `beginTransaction()`/`commit()`
+  and roll back on any failure.
+- Status-change and refund domain events are now dispatched only after a successful
+  commit.
+- `PaymentService` now reuses the shared `ManagesTransactions` trait instead of its own
+  private transaction helper.
 
 ### Fixed
 
 - Eliminated the race condition where two identical parallel webhook deliveries could
   both pass the application-level idempotency checks and be recorded twice.
+- Eliminated partial writes (inconsistent database state) when audit history
+  persistence fails after a payment, attempt, or refund write.
 
 ## [1.0.1] - 2026-09-28
 
