@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Repositories\Memory;
 
+use DateTimeImmutable;
 use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
 use Ttpryg\PaymentEngine\Entities\Payment;
+use Ttpryg\PaymentEngine\Enums\PaymentStatus;
 
 class MemoryPaymentRepository implements PaymentRepositoryInterface
 {
@@ -36,6 +38,20 @@ class MemoryPaymentRepository implements PaymentRepositoryInterface
         }
 
         return null;
+    }
+
+    public function findPendingExpired(DateTimeImmutable $cutoff): array
+    {
+        $result = [];
+        foreach ($this->payments as $payment) {
+            if ($payment->status === PaymentStatus::PENDING
+                && $payment->expiresAt instanceof DateTimeImmutable
+                && $payment->expiresAt < $cutoff) {
+                $result[] = $payment;
+            }
+        }
+
+        return $result;
     }
 
     public function findByPayable(string $payableType, string $payableId): array
