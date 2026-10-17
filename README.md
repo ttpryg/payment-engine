@@ -22,6 +22,7 @@ In modern microservices and modular monolithic architectures, handling payments 
   - `MockPaymentGateway`: Predictable driver for unit tests, CI/CD, and local sandboxes.
   - `ManualTransferGateway`: Built-in driver for manual bank transfers, cash on delivery (COD), or offline payments.
 - **Robust Webhook Idempotency**: Prevents duplicate executions, double settlements, or duplicate history entries using gateway `event_id` and SHA-256 `payload_fingerprint`.
+- **Async-Ready Webhook Ingestion**: A recommendation for acknowledging gateways immediately, queueing the raw delivery, and processing status updates/events in a background worker (see [§7.1](#71-asynchronous-webhook-ingestion-recommended)).
 - **Strict State Machine**: Enforces valid status transitions across the entire payment lifecycle (`pending`, `authorized`, `captured`, `completed`, `failed`, `cancelled`, `expired`, `partially_refunded`, `refunded`).
 - **Partial & Full Refunds**: Verifies that refund requests never exceed the remaining refundable `paid_amount`.
 - **ACID Transactional Mutations**: When a `PDO` connection is provided, status changes, refunds, and webhook processing run inside a transaction so payment, refund, attempt, and audit writes either commit together or roll back atomically.
@@ -160,6 +161,63 @@ Webhooks sent by gateways are often redelivered multiple times. `WebhookProcesso
 If a webhook with the same `event_id` or `payload_fingerprint` has already been processed, it returns immediately without firing duplicate events or inserting duplicate history entries.
 
 Idempotency is additionally enforced at the database level via unique indexes on `webhook_events (gateway_provider, payload_fingerprint)` and `webhook_events (gateway_provider, event_id)`. When two identical deliveries arrive concurrently (TOCTOU race), the losing `INSERT` raises `DuplicateWebhookException`, which `WebhookProcessorService` treats as a safe no-op.
+
+### 7.1 Asynchronous Webhook Ingestion (Recommended)
+
+Gateways typically expect a webhook to be acknowledged within ~3 seconds, while `WebhookProcessorService::process()` performs signature verification, database writes, and **synchronous** PSR-14 event dispatch. Slow listeners (sending emails, decrementing stock, calling third-party APIs) can cause the gateway to time out and retry.
+
+The recommended architecture is **acknowledge first, process in the background**:
+
+```text
+Gateway ──HTTP POST──▶ Webhook Endpoint ──enqueue(raw payload)──▶ Queue (Redis / RabbitMQ / DB)
+                             │                                            │
+                       return HTTP 200                             Worker: verify + process
+                                                                           │
+                                                             WebhookProcessorService::process()
+                                                                           │
+                                                             status change + history + events
+```
+
+1. **Acknowledge immediately.** The HTTP endpoint should do the minimum work possible: read the raw body and headers, push them onto a durable queue (Redis, RabbitMQ, SQS, or a database-backed queue), and return `200 OK`.
+
+   ```php
+   // Framework-agnostic pseudocode for the webhook endpoint.
+   $payload = json_decode(file_get_contents('php://input'), true, flags: JSON_THROW_ON_ERROR);
+
+   $queue->push('payment.webhooks', [
+       'provider' => 'midtrans',
+       'payload'  => $payload,
+       'headers'  => $requestHeaders,
+   ]);
+
+   http_response_code(200);
+   ```
+
+2. **Process asynchronously.** A background worker consumes the job and calls `WebhookProcessorService::process()`. Because verification runs in the worker, an invalid/tampered payload simply throws `GatewayException` and no side-effects are applied.
+
+   ```php
+   while ($job = $queue->pop('payment.webhooks')) {
+       try {
+           $webhookProcessor->process($job['provider'], $job['payload'], $job['headers']);
+       } catch (\Ttpryg\PaymentEngine\Exceptions\GatewayException) {
+           // Invalid signature / malformed payload — drop or move to a dead-letter queue.
+       } catch (\Throwable) {
+           $queue->retry($job); // transient failure (DB/gateway) — safe to retry (idempotent)
+       }
+   }
+   ```
+
+3. **Let listeners queue their own side-effects.** PSR-14 listeners registered on the engine still run synchronously *inside the worker*. For any heavy or external side-effect (email, stock, outbound webhooks), enqueue a second background job from the listener instead of doing the work inline.
+
+   ```php
+   $listenerProvider->addListener(PaymentCompletedEvent::class, function (PaymentCompletedEvent $event) use ($queue): void {
+       $queue->push('orders.fulfil', ['payment_id' => $event->payment->id]);
+   });
+   ```
+
+**Why it is safe:** the `event_id` + `payload_fingerprint` unique indexes make `process()` idempotent, so at-least-once delivery from the queue (retries, gateway redeliveries) never double-charges or duplicates history/events. Keep the queue delivery **at-least-once** and let the engine deduplicate.
+
+> **Don't** persist inbound webhooks through `WebhookEventRepositoryInterface` in the HTTP request path and then call `process()` later: a stored-but-unprocessed `webhook_events` row is treated as a duplicate by the unique constraints and the later call becomes a no-op. Keep raw ingestion in your own queue/table and run `process()` exactly once per delivery.
 
 ---
 
