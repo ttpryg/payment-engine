@@ -5,6 +5,27 @@ All notable changes to `ttpryg/payment-engine` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-18
+
+### Added
+
+- Root `ExceptionInterface` marker interface (`Ttpryg\PaymentEngine\Exceptions\ExceptionInterface`)
+  that extends `Throwable` and is implemented by every custom exception, so consumers can
+  catch all library-specific errors with a single type.
+- Versioned migration system: `DatabaseMigrator` and `MigrationRunner` (tracker table
+  `payment_engine_migrations`), the baseline migration
+  `database/migrations/001_add_payment_indexes.sql`, and
+  `tests/Integration/DatabaseMigratorTest.php`.
+- `.editorconfig` for consistent editor settings across the project.
+
+### Changed
+
+- Added `declare(strict_types=1)` to all source files that were missing it.
+
+### Documentation
+
+- README: documented programmatic schema application via `DatabaseMigrator::migrate()`.
+
 ## [1.1.0] - 2026-10-18
 
 ### Added
@@ -107,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   processing, append-only audit history, PSR-14 domain events, and PDO/In-Memory
   storage drivers.
 
-[Unreleased]: https://github.com/ttpryg/payment-engine/compare/1.0.1...HEAD
+[Unreleased]: https://github.com/ttpryg/payment-engine/compare/1.1.0...HEAD
+[1.1.0]: https://github.com/ttpryg/payment-engine/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/ttpryg/payment-engine/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/ttpryg/payment-engine/releases/tag/1.0.0
