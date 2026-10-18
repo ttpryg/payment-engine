@@ -6,7 +6,7 @@ namespace Ttpryg\PaymentEngine\Exceptions;
 
 use RuntimeException;
 
-class DuplicateWebhookException extends RuntimeException
+class DuplicateWebhookException extends RuntimeException implements ExceptionInterface
 {
     public static function forFingerprint(string $gateway, string $fingerprint): self
     {

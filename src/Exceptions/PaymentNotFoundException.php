@@ -6,7 +6,7 @@ namespace Ttpryg\PaymentEngine\Exceptions;
 
 use RuntimeException;
 
-class PaymentNotFoundException extends RuntimeException
+class PaymentNotFoundException extends RuntimeException implements ExceptionInterface
 {
     public static function forId(string $id): self
     {

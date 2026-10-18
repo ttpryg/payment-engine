@@ -6,7 +6,7 @@ namespace Ttpryg\PaymentEngine\Exceptions;
 
 use RuntimeException;
 
-class HttpClientException extends RuntimeException
+class HttpClientException extends RuntimeException implements ExceptionInterface
 {
     public static function transportError(string $message, ?\Throwable $previous = null): self
     {

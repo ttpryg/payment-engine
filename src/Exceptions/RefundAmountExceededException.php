@@ -7,7 +7,7 @@ namespace Ttpryg\PaymentEngine\Exceptions;
 use RuntimeException;
 use Ttpryg\PaymentEngine\ValueObjects\Money;
 
-class RefundAmountExceededException extends RuntimeException
+class RefundAmountExceededException extends RuntimeException implements ExceptionInterface
 {
     public static function create(Money $requested, Money $refundable): self
     {

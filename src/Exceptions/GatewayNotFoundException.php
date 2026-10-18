@@ -6,7 +6,7 @@ namespace Ttpryg\PaymentEngine\Exceptions;
 
 use RuntimeException;
 
-class GatewayNotFoundException extends RuntimeException
+class GatewayNotFoundException extends RuntimeException implements ExceptionInterface
 {
     public static function forName(string $name): self
     {

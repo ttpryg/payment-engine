@@ -6,7 +6,7 @@ namespace Ttpryg\PaymentEngine\Exceptions;
 
 use RuntimeException;
 
-class GatewayException extends RuntimeException
+class GatewayException extends RuntimeException implements ExceptionInterface
 {
     public static function failed(string $gateway, string $message, ?\Throwable $throwable = null): self
     {
