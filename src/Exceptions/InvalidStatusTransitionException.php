@@ -7,7 +7,7 @@ namespace Ttpryg\PaymentEngine\Exceptions;
 use RuntimeException;
 use Ttpryg\PaymentEngine\Enums\PaymentStatus;
 
-class InvalidStatusTransitionException extends RuntimeException
+class InvalidStatusTransitionException extends RuntimeException implements ExceptionInterface
 {
     public static function create(PaymentStatus $from, PaymentStatus $to): self
     {
