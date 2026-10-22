@@ -26,6 +26,9 @@ class MockPaymentGateway implements PaymentGatewayInterface
         return $this->name;
     }
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function createTransaction(Payment $payment, array $options = []): GatewayResponse
     {
         if (! $this->shouldSucceed) {
@@ -50,6 +53,10 @@ class MockPaymentGateway implements PaymentGatewayInterface
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers
+     */
     public function verifyWebhook(array $payload, array $headers = []): WebhookVerificationResult
     {
         if (isset($headers['x-mock-signature']) && $headers['x-mock-signature'] === 'invalid') {

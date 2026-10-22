@@ -43,6 +43,9 @@ class PdoPaymentHistoryRepository implements PaymentHistoryRepositoryInterface
         return array_map($this->mapToEntity(...), $rows);
     }
 
+    /**
+     * @param  array<string, mixed>  $row
+     */
     private function mapToEntity(array $row): PaymentHistory
     {
         return new PaymentHistory(

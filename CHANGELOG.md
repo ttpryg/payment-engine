@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Added PHPStan level 8 static analysis (`phpstan.neon`) and the `composer analyse`
+  and `composer cs-check` scripts; CI now runs static analysis before linting.
+- Entity timestamps (`createdAt` and `updatedAt`) are now non-nullable after
+  construction, and `CurlHttpClient` rejects empty HTTP method names.
 - `PaymentService::createPayment()` now accepts a single `CreatePaymentRequest`
   object instead of twelve individual parameters (breaking for direct callers).
 - Database schema is now created and upgraded exclusively through migrations; the

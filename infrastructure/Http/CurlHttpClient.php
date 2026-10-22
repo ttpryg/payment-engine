@@ -23,13 +23,20 @@ class CurlHttpClient implements HttpClientInterface
             throw HttpClientException::transportError('Unable to initialise the cURL handle.');
         }
 
+        $requestMethod = strtoupper($method);
+        if ($requestMethod === '') {
+            curl_close($handle);
+
+            throw HttpClientException::transportError('The HTTP method must not be empty.');
+        }
+
         $formattedHeaders = [];
         foreach ($headers as $name => $value) {
             $formattedHeaders[] = $name.': '.$value;
         }
 
         curl_setopt_array($handle, [
-            CURLOPT_CUSTOMREQUEST => strtoupper($method),
+            CURLOPT_CUSTOMREQUEST => $requestMethod,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HTTPHEADER => $formattedHeaders,
             CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,

@@ -30,6 +30,13 @@ class Payment
 
     public Money $refundedAmount;
 
+    public DateTimeImmutable $createdAt;
+
+    public DateTimeImmutable $updatedAt;
+
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     */
     public function __construct(
         public readonly string $id,
         PaymentNumber|string $paymentNumber,
@@ -46,8 +53,8 @@ class Payment
         public ?DateTimeImmutable $expiresAt = null,
         public ?DateTimeImmutable $paidAt = null,
         public ?array $metadata = null,
-        public ?DateTimeImmutable $createdAt = null,
-        public ?DateTimeImmutable $updatedAt = null
+        ?DateTimeImmutable $createdAt = null,
+        ?DateTimeImmutable $updatedAt = null
     ) {
         $currency = $amount instanceof Money ? $amount->currency : 'IDR';
 

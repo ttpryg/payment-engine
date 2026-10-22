@@ -26,7 +26,10 @@ jobs:
       - name: Install dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: Run Lint 
+      - name: Run Static Analysis
+        run: composer analyse
+
+      - name: Run Lint
         run: composer fix:check
 
       - name: Run PHPUnit

@@ -587,14 +587,23 @@ $expiredPayments = $expirationService->expireOverdue();
 Run tests with PHPUnit:
 
 ```bash
-vendor/bin/phpunit
+composer test
 ```
 
 Or using Docker Compose:
 
 ```bash
 docker compose up -d
-docker compose exec app vendor/bin/phpunit
+docker compose exec app composer test
+```
+
+Additional Composer scripts:
+
+```bash
+composer analyse    # PHPStan (level 8)
+composer cs-check   # Pint style check
+composer fix:check  # Rector dry-run + Pint style check
+composer fix        # Apply Rector + Pint fixes
 ```
 
 ---

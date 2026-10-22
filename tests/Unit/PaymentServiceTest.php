@@ -73,7 +73,10 @@ class PaymentServiceTest extends TestCase
         // Verify attempt was created with mock transaction reference
         $attempts = $this->memoryPaymentAttemptRepository->findByPaymentId('pay-001');
         $this->assertCount(1, $attempts);
+        $this->assertNotNull($attempts[0]->transactionReference);
         $this->assertStringStartsWith('mock_tx_', $attempts[0]->transactionReference);
+        $this->assertNotNull($payment->metadata);
+        $this->assertArrayHasKey('redirect_url', $payment->metadata);
         $this->assertNotNull($payment->metadata['redirect_url']);
 
         // Verify history recorded

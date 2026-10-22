@@ -24,9 +24,12 @@ class FakeHttpClient implements HttpClientInterface
         return $this;
     }
 
+    /**
+     * @param  array<string, mixed>  $data
+     */
     public function queueJson(array $data, int $statusCode = 200): self
     {
-        return $this->queue(new HttpResponse($statusCode, [], json_encode($data, JSON_UNESCAPED_SLASHES)));
+        return $this->queue(new HttpResponse($statusCode, [], json_encode($data, JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)));
     }
 
     public function throwOnNextRequest(\Throwable $throwable): self
@@ -60,13 +63,26 @@ class FakeHttpClient implements HttpClientInterface
      */
     public function lastRequest(): array
     {
-        return $this->requests[array_key_last($this->requests)] ?? [];
+        $index = array_key_last($this->requests);
+        if ($index === null) {
+            throw new \RuntimeException('No HTTP request has been recorded.');
+        }
+
+        return $this->requests[$index];
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     public function lastRequestBody(): array
     {
-        $body = $this->lastRequest()['body'] ?? null;
+        $body = $this->lastRequest()['body'];
+        if ($body === null) {
+            return [];
+        }
 
-        return $body === null ? [] : (array) json_decode($body, true);
+        $decoded = json_decode($body, true);
+
+        return is_array($decoded) ? $decoded : [];
     }
 }

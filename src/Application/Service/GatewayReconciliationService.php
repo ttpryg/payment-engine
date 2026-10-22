@@ -112,7 +112,7 @@ class GatewayReconciliationService
             }
 
             if ($latest === null
-                || ($attempt->createdAt?->getTimestamp() ?? 0) >= ($latest->createdAt?->getTimestamp() ?? 0)) {
+                || $attempt->createdAt->getTimestamp() >= $latest->createdAt->getTimestamp()) {
                 $latest = $attempt;
             }
         }

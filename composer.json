@@ -16,6 +16,7 @@
     },
     "require-dev": {
         "laravel/pint": "^1.20",
+        "phpstan/phpstan": "^2.3",
         "phpunit/phpunit": "^10.0",
         "rector/rector": "^2.0"
     },
@@ -40,14 +41,16 @@
     },
     "minimum-stability": "stable",
     "scripts": {
-        "test": "phpunit",
+        "analyse": "vendor/bin/phpstan analyse",
+        "cs-check": "vendor/bin/pint --test",
+        "fix": [
+            "vendor/bin/rector process",
+            "vendor/bin/pint"
+        ],
         "fix:check": [
             "vendor/bin/rector process --dry-run",
             "vendor/bin/pint --test"
         ],
-        "fix": [
-            "vendor/bin/rector process",
-            "vendor/bin/pint"
-        ]
+        "test": "phpunit"
     }
 }

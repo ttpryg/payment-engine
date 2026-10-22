@@ -71,6 +71,9 @@ class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
         return array_map($this->mapToEntity(...), $rows);
     }
 
+    /**
+     * @param  array<string, mixed>  $row
+     */
     private function mapToEntity(array $row): PaymentRefund
     {
         return new PaymentRefund(

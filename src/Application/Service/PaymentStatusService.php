@@ -34,6 +34,9 @@ class PaymentStatusService
         private readonly ?PDO $pdo = null
     ) {}
 
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     */
     public function changeStatus(
         Payment $payment,
         PaymentStatus $targetStatus,
