@@ -89,7 +89,7 @@ return new class extends Migration
                 event_id VARCHAR(150) NULL,
                 payload_fingerprint VARCHAR(64) NOT NULL,
                 payload TEXT NOT NULL,
-                is_processed TINYINT(1) NOT NULL DEFAULT 0,
+                is_processed BOOLEAN NOT NULL DEFAULT 0,
                 processed_at DATETIME NULL,
                 created_at DATETIME NOT NULL
             )'
