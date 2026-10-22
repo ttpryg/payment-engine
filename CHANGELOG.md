@@ -73,9 +73,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Added `declare(strict_types=1)` to all source files that were missing it.
-
-### Documentation
-
 - README: documented programmatic schema application via `DatabaseMigrator::migrate()`.
 
 ## [1.1.0] - 2026-10-18
@@ -117,6 +114,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   payment status mapping.
 - `XenditGateway` implementing `PaymentGatewayInterface` for the Xendit Invoice + Refund
   APIs, including constant-time `x-callback-token` webhook verification and status mapping.
+- `PaymentEdgeCaseTest` integration coverage: TOCTOU webhook race resolved by the
+  database unique constraint (no-op, no duplicate history/events), a partial-refund
+  ladder that reaches exactly `paid_amount` then rejects overflow, and reconciliation
+  gracefully skipping a payment when the real Midtrans driver hits a transport timeout.
 
 ### Changed
 
@@ -141,6 +142,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   concurrent transitions/refunds operate on the latest committed state.
 - `WebhookProcessorService` now continues processing with the payment instance returned
   by the (locked) status change.
+- Documented the recommended asynchronous webhook ingestion architecture
+  (acknowledge → enqueue → background worker) in README §7.1, including queue options,
+  worker wiring, listener guidance, and idempotency guarantees.
 
 ### Fixed
 
@@ -150,19 +154,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   persistence fails after a payment, attempt, or refund write.
 - Eliminated lost updates and over-refunds caused by concurrent status changes or
   refund requests reading stale payment rows (pessimistic locking).
-
-### Documentation
-
-- Documented the recommended asynchronous webhook ingestion architecture
-  (acknowledge → enqueue → background worker) in README §7.1, including queue options,
-  worker wiring, listener guidance, and idempotency guarantees.
-
-### Tests
-
-- Added `PaymentEdgeCaseTest` integration coverage: TOCTOU webhook race resolved by the
-  database unique constraint (no-op, no duplicate history/events), a partial-refund
-  ladder that reaches exactly `paid_amount` then rejects overflow, and reconciliation
-  gracefully skipping a payment when the real Midtrans driver hits a transport timeout.
 
 ## [1.0.1] - 2026-09-28
 
@@ -180,7 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   processing, append-only audit history, PSR-14 domain events, and PDO/In-Memory
   storage drivers.
 
-[Unreleased]: https://github.com/ttpryg/payment-engine/compare/1.1.0...HEAD
+[Unreleased]: https://github.com/ttpryg/payment-engine/compare/1.2.0...HEAD
+[1.2.0]: https://github.com/ttpryg/payment-engine/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/ttpryg/payment-engine/compare/1.0.1...1.1.0
 [1.0.1]: https://github.com/ttpryg/payment-engine/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/ttpryg/payment-engine/releases/tag/1.0.0
