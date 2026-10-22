@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Contracts;
 
-use Ttpryg\PaymentEngine\DTOs\GatewayResponse;
-use Ttpryg\PaymentEngine\DTOs\GatewayStatusResponse;
-use Ttpryg\PaymentEngine\DTOs\RefundResponse;
-use Ttpryg\PaymentEngine\DTOs\WebhookVerificationResult;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
+use Ttpryg\PaymentEngine\Application\DTO\GatewayResponse;
+use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;
+use Ttpryg\PaymentEngine\Application\DTO\RefundResponse;
+use Ttpryg\PaymentEngine\Application\DTO\WebhookVerificationResult;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
 interface PaymentGatewayInterface
 {

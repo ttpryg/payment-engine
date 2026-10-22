@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Http;
 
+use Ttpryg\PaymentEngine\Application\DTO\HttpResponse;
 use Ttpryg\PaymentEngine\Contracts\HttpClientInterface;
-use Ttpryg\PaymentEngine\DTOs\HttpResponse;
-use Ttpryg\PaymentEngine\Exceptions\HttpClientException;
+use Ttpryg\PaymentEngine\Domain\Exception\HttpClientException;
 
 class CurlHttpClient implements HttpClientInterface
 {

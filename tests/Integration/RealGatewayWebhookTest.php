@@ -7,13 +7,17 @@ namespace Ttpryg\PaymentEngine\Tests\Integration;
 use PHPUnit\Framework\TestCase;
 use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
 use Ttpryg\EventDispatcher\Provider\ListenerProvider;
+use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
+use Ttpryg\PaymentEngine\Application\Service\WebhookProcessorService;
 use Ttpryg\PaymentEngine\Contracts\PaymentGatewayInterface;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Entities\PaymentAttempt;
-use Ttpryg\PaymentEngine\Enums\AttemptStatus;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
-use Ttpryg\PaymentEngine\Events\PaymentCompletedEvent;
-use Ttpryg\PaymentEngine\Exceptions\GatewayException;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentAttempt;
+use Ttpryg\PaymentEngine\Domain\Enum\AttemptStatus;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Event\PaymentCompletedEvent;
+use Ttpryg\PaymentEngine\Domain\Exception\GatewayException;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Gateways\GatewayManager;
 use Ttpryg\PaymentEngine\Gateways\MidtransGateway;
 use Ttpryg\PaymentEngine\Gateways\XenditGateway;
@@ -21,10 +25,6 @@ use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentAttemptRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryWebhookEventRepository;
-use Ttpryg\PaymentEngine\Services\PaymentStatusService;
-use Ttpryg\PaymentEngine\Services\WebhookProcessorService;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 
 class RealGatewayWebhookTest extends TestCase
 {

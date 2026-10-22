@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Repositories\Memory;
 
-use Ttpryg\PaymentEngine\Contracts\WebhookEventRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\WebhookEvent;
+use Ttpryg\PaymentEngine\Domain\Entity\WebhookEvent;
+use Ttpryg\PaymentEngine\Domain\Repository\WebhookEventRepositoryInterface;
 
 class MemoryWebhookEventRepository implements WebhookEventRepositoryInterface
 {

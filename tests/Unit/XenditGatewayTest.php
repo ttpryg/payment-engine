@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
 use Ttpryg\PaymentEngine\Gateways\XenditGateway;
 use Ttpryg\PaymentEngine\Tests\Support\FakeHttpClient;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
-use Ttpryg\PaymentEngine\ValueObjects\PayerReference;
 
 class XenditGatewayTest extends TestCase
 {

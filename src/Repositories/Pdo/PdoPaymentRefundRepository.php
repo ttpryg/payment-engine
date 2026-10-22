@@ -6,10 +6,10 @@ namespace Ttpryg\PaymentEngine\Repositories\Pdo;
 
 use DateTimeImmutable;
 use PDO;
-use Ttpryg\PaymentEngine\Contracts\PaymentRefundRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\PaymentRefund;
-use Ttpryg\PaymentEngine\Enums\RefundStatus;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentRefund;
+use Ttpryg\PaymentEngine\Domain\Enum\RefundStatus;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentRefundRepositoryInterface;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
 class PdoPaymentRefundRepository implements PaymentRefundRepositoryInterface
 {

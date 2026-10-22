@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Contracts;
 
-use Ttpryg\PaymentEngine\DTOs\HttpResponse;
+use Ttpryg\PaymentEngine\Application\DTO\HttpResponse;
 
 interface HttpClientInterface
 {

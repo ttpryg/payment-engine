@@ -7,19 +7,19 @@ namespace Ttpryg\PaymentEngine\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
 use Ttpryg\EventDispatcher\Provider\ListenerProvider;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
-use Ttpryg\PaymentEngine\Events\PaymentPartiallyRefundedEvent;
-use Ttpryg\PaymentEngine\Events\PaymentRefundedEvent;
-use Ttpryg\PaymentEngine\Exceptions\RefundAmountExceededException;
+use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Event\PaymentPartiallyRefundedEvent;
+use Ttpryg\PaymentEngine\Domain\Event\PaymentRefundedEvent;
+use Ttpryg\PaymentEngine\Domain\Exception\RefundAmountExceededException;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Gateways\GatewayManager;
 use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
-use Ttpryg\PaymentEngine\Services\PaymentRefundService;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 
 class PaymentRefundServiceTest extends TestCase
 {

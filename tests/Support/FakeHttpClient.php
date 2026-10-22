@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Tests\Support;
 
+use Ttpryg\PaymentEngine\Application\DTO\HttpResponse;
 use Ttpryg\PaymentEngine\Contracts\HttpClientInterface;
-use Ttpryg\PaymentEngine\DTOs\HttpResponse;
 
 class FakeHttpClient implements HttpClientInterface
 {

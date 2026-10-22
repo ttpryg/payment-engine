@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Ttpryg\PaymentEngine\Enums\PaymentMethod;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
+use Ttpryg\PaymentEngine\Application\Service\PaymentService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
 use Ttpryg\PaymentEngine\Gateways\GatewayManager;
 use Ttpryg\PaymentEngine\Gateways\ManualTransferGateway;
 use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentAttemptRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
-use Ttpryg\PaymentEngine\Services\PaymentService;
-use Ttpryg\PaymentEngine\Services\PaymentStatusService;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
-use Ttpryg\PaymentEngine\ValueObjects\PayerReference;
 
 class PaymentServiceTest extends TestCase
 {

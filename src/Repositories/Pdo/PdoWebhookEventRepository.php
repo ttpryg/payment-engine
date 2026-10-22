@@ -7,9 +7,9 @@ namespace Ttpryg\PaymentEngine\Repositories\Pdo;
 use DateTimeImmutable;
 use PDO;
 use PDOException;
-use Ttpryg\PaymentEngine\Contracts\WebhookEventRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\WebhookEvent;
-use Ttpryg\PaymentEngine\Exceptions\DuplicateWebhookException;
+use Ttpryg\PaymentEngine\Domain\Entity\WebhookEvent;
+use Ttpryg\PaymentEngine\Domain\Exception\DuplicateWebhookException;
+use Ttpryg\PaymentEngine\Domain\Repository\WebhookEventRepositoryInterface;
 
 class PdoWebhookEventRepository implements WebhookEventRepositoryInterface
 {

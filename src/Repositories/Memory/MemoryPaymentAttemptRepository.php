@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Repositories\Memory;
 
-use Ttpryg\PaymentEngine\Contracts\PaymentAttemptRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\PaymentAttempt;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentAttempt;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentAttemptRepositoryInterface;
 
 class MemoryPaymentAttemptRepository implements PaymentAttemptRepositoryInterface
 {

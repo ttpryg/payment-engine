@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Gateways;
 
 use JsonException;
+use Ttpryg\PaymentEngine\Application\DTO\HttpResponse;
 use Ttpryg\PaymentEngine\Contracts\HttpClientInterface;
 use Ttpryg\PaymentEngine\Contracts\PaymentGatewayInterface;
-use Ttpryg\PaymentEngine\DTOs\HttpResponse;
-use Ttpryg\PaymentEngine\Exceptions\GatewayException;
-use Ttpryg\PaymentEngine\Exceptions\HttpClientException;
+use Ttpryg\PaymentEngine\Domain\Exception\GatewayException;
+use Ttpryg\PaymentEngine\Domain\Exception\HttpClientException;
 use Ttpryg\PaymentEngine\Http\CurlHttpClient;
 
 abstract class AbstractHttpGateway implements PaymentGatewayInterface

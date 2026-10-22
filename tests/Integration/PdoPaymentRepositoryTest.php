@@ -6,26 +6,26 @@ namespace Ttpryg\PaymentEngine\Tests\Integration;
 
 use PDO;
 use PHPUnit\Framework\TestCase;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Entities\PaymentAttempt;
-use Ttpryg\PaymentEngine\Entities\PaymentHistory;
-use Ttpryg\PaymentEngine\Entities\PaymentRefund;
-use Ttpryg\PaymentEngine\Entities\WebhookEvent;
-use Ttpryg\PaymentEngine\Enums\AttemptStatus;
-use Ttpryg\PaymentEngine\Enums\PaymentHistoryAction;
-use Ttpryg\PaymentEngine\Enums\PaymentMethod;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
-use Ttpryg\PaymentEngine\Enums\RefundStatus;
-use Ttpryg\PaymentEngine\Exceptions\DuplicateWebhookException;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentAttempt;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentHistory;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentRefund;
+use Ttpryg\PaymentEngine\Domain\Entity\WebhookEvent;
+use Ttpryg\PaymentEngine\Domain\Enum\AttemptStatus;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentHistoryAction;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Enum\RefundStatus;
+use Ttpryg\PaymentEngine\Domain\Exception\DuplicateWebhookException;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PaymentNumber;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentAttemptRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
-use Ttpryg\PaymentEngine\ValueObjects\PayerReference;
-use Ttpryg\PaymentEngine\ValueObjects\PaymentNumber;
 
 class PdoPaymentRepositoryTest extends TestCase
 {

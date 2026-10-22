@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Gateways;
 
 use Ttpryg\PaymentEngine\Contracts\PaymentGatewayInterface;
-use Ttpryg\PaymentEngine\Exceptions\GatewayNotFoundException;
+use Ttpryg\PaymentEngine\Domain\Exception\GatewayNotFoundException;
 
 class GatewayManager
 {

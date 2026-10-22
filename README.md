@@ -93,12 +93,12 @@ To add a new payment gateway (such as Midtrans, Xendit, Stripe, or DOKU), implem
 namespace MyNamespace\Gateways;
 
 use Ttpryg\PaymentEngine\Contracts\PaymentGatewayInterface;
-use Ttpryg\PaymentEngine\DTOs\GatewayResponse;
-use Ttpryg\PaymentEngine\DTOs\GatewayStatusResponse;
-use Ttpryg\PaymentEngine\DTOs\RefundResponse;
-use Ttpryg\PaymentEngine\DTOs\WebhookVerificationResult;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
+use Ttpryg\PaymentEngine\Application\DTO\GatewayResponse;
+use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;
+use Ttpryg\PaymentEngine\Application\DTO\RefundResponse;
+use Ttpryg\PaymentEngine\Application\DTO\WebhookVerificationResult;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
 class CustomPaymentGateway implements PaymentGatewayInterface
 {
@@ -123,7 +123,7 @@ class CustomPaymentGateway implements PaymentGatewayInterface
         return new WebhookVerificationResult(
             isValid: true,
             transactionReference: $payload['transaction_reference'] ?? null,
-            mappedStatus: \Ttpryg\PaymentEngine\Enums\PaymentStatus::COMPLETED,
+            mappedStatus: \Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus::COMPLETED,
             paidAmount: new Money((int) $payload['paid_amount'], 'IDR')
         );
     }
@@ -255,7 +255,7 @@ Gateway ──HTTP POST──▶ Webhook Endpoint ──enqueue(raw payload)─�
    while ($job = $queue->pop('payment.webhooks')) {
        try {
            $webhookProcessor->process($job['provider'], $job['payload'], $job['headers']);
-       } catch (\Ttpryg\PaymentEngine\Exceptions\GatewayException) {
+       } catch (\Ttpryg\PaymentEngine\Domain\Exception\GatewayException) {
            // Invalid signature / malformed payload — drop or move to a dead-letter queue.
        } catch (\Throwable) {
            $queue->retry($job); // transient failure (DB/gateway) — safe to retry (idempotent)
@@ -304,7 +304,7 @@ When a `PDO` connection is supplied, refund issuance first locks the payment row
 Pending payments that pass their `expires_at` timestamp can be swept automatically:
 
 ```php
-use Ttpryg\PaymentEngine\Services\PaymentExpirationService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentExpirationService;
 
 $expirationService = new PaymentExpirationService($paymentRepo, $statusService);
 
@@ -322,7 +322,7 @@ $count = $expirationService->countExpirable();
 Gateways may fail to deliver a webhook (network timeout, firewall drop), leaving a payment stuck in `pending`. `GatewayReconciliationService` polls the gateway for pending payments approaching expiry and syncs the local status:
 
 ```php
-use Ttpryg\PaymentEngine\Services\GatewayReconciliationService;
+use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
 
 $reconciliationService = new GatewayReconciliationService(
     $gatewayManager,
@@ -468,7 +468,7 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 ```php
 use DateTimeImmutable;
 use PDO;
-use Ttpryg\PaymentEngine\Enums\PaymentMethod;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
 use Ttpryg\PaymentEngine\Gateways\GatewayManager;
 use Ttpryg\PaymentEngine\Gateways\ManualTransferGateway;
 use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
@@ -477,14 +477,14 @@ use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
-use Ttpryg\PaymentEngine\Services\GatewayReconciliationService;
-use Ttpryg\PaymentEngine\Services\PaymentExpirationService;
-use Ttpryg\PaymentEngine\Services\PaymentRefundService;
-use Ttpryg\PaymentEngine\Services\PaymentService;
-use Ttpryg\PaymentEngine\Services\PaymentStatusService;
-use Ttpryg\PaymentEngine\Services\WebhookProcessorService;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
-use Ttpryg\PaymentEngine\ValueObjects\PayerReference;
+use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentExpirationService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
+use Ttpryg\PaymentEngine\Application\Service\WebhookProcessorService;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
 
 // 1. Setup PDO & Repositories
 $pdo = new PDO('mysql:host=localhost;dbname=payment_db', 'root', 'secret');

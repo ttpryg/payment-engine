@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Gateways;
 
+use Ttpryg\PaymentEngine\Application\DTO\GatewayResponse;
+use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;
+use Ttpryg\PaymentEngine\Application\DTO\RefundResponse;
+use Ttpryg\PaymentEngine\Application\DTO\WebhookVerificationResult;
 use Ttpryg\PaymentEngine\Contracts\PaymentGatewayInterface;
-use Ttpryg\PaymentEngine\DTOs\GatewayResponse;
-use Ttpryg\PaymentEngine\DTOs\GatewayStatusResponse;
-use Ttpryg\PaymentEngine\DTOs\RefundResponse;
-use Ttpryg\PaymentEngine\DTOs\WebhookVerificationResult;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Entities\WebhookEvent;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Entity\WebhookEvent;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
 class MockPaymentGateway implements PaymentGatewayInterface
 {
