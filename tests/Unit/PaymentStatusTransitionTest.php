@@ -7,15 +7,15 @@ namespace Ttpryg\PaymentEngine\Tests\Unit;
 use PHPUnit\Framework\TestCase;
 use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
 use Ttpryg\EventDispatcher\Provider\ListenerProvider;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
-use Ttpryg\PaymentEngine\Events\PaymentCancelledEvent;
-use Ttpryg\PaymentEngine\Events\PaymentCompletedEvent;
-use Ttpryg\PaymentEngine\Exceptions\InvalidStatusTransitionException;
+use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Event\PaymentCancelledEvent;
+use Ttpryg\PaymentEngine\Domain\Event\PaymentCompletedEvent;
+use Ttpryg\PaymentEngine\Domain\Exception\InvalidStatusTransitionException;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
-use Ttpryg\PaymentEngine\Services\PaymentStatusService;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 
 class PaymentStatusTransitionTest extends TestCase
 {

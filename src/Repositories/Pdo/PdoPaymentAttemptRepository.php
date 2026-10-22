@@ -6,10 +6,10 @@ namespace Ttpryg\PaymentEngine\Repositories\Pdo;
 
 use DateTimeImmutable;
 use PDO;
-use Ttpryg\PaymentEngine\Contracts\PaymentAttemptRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\PaymentAttempt;
-use Ttpryg\PaymentEngine\Enums\AttemptStatus;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentAttempt;
+use Ttpryg\PaymentEngine\Domain\Enum\AttemptStatus;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentAttemptRepositoryInterface;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
 class PdoPaymentAttemptRepository implements PaymentAttemptRepositoryInterface
 {

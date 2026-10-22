@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Repositories\Memory;
 
 use DateTimeImmutable;
-use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentRepositoryInterface;
 
 class MemoryPaymentRepository implements PaymentRepositoryInterface
 {

@@ -8,12 +8,18 @@ use DateTimeImmutable;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Entities\PaymentAttempt;
-use Ttpryg\PaymentEngine\Entities\PaymentHistory;
-use Ttpryg\PaymentEngine\Enums\AttemptStatus;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
+use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;
+use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
+use Ttpryg\PaymentEngine\Application\Service\WebhookProcessorService;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentAttempt;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentHistory;
+use Ttpryg\PaymentEngine\Domain\Enum\AttemptStatus;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentHistoryRepositoryInterface;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Gateways\GatewayManager;
 use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentAttemptRepository;
@@ -21,12 +27,6 @@ use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
-use Ttpryg\PaymentEngine\Services\GatewayReconciliationService;
-use Ttpryg\PaymentEngine\Services\PaymentRefundService;
-use Ttpryg\PaymentEngine\Services\PaymentStatusService;
-use Ttpryg\PaymentEngine\Services\WebhookProcessorService;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
 
 class PaymentTransactionTest extends TestCase
 {

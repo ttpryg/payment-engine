@@ -6,7 +6,7 @@ namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use InvalidArgumentException;
 use PHPUnit\Framework\TestCase;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
 class MoneyTest extends TestCase
 {

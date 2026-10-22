@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Repositories\Memory;
 
-use Ttpryg\PaymentEngine\Contracts\PaymentRefundRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\PaymentRefund;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentRefund;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentRefundRepositoryInterface;
 
 class MemoryPaymentRefundRepository implements PaymentRefundRepositoryInterface
 {

@@ -6,14 +6,14 @@ namespace Ttpryg\PaymentEngine\Repositories\Pdo;
 
 use DateTimeImmutable;
 use PDO;
-use Ttpryg\PaymentEngine\Contracts\PaymentRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\Payment;
-use Ttpryg\PaymentEngine\Enums\PaymentMethod;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
-use Ttpryg\PaymentEngine\ValueObjects\Money;
-use Ttpryg\PaymentEngine\ValueObjects\PayableReference;
-use Ttpryg\PaymentEngine\ValueObjects\PayerReference;
-use Ttpryg\PaymentEngine\ValueObjects\PaymentNumber;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentRepositoryInterface;
+use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
+use Ttpryg\PaymentEngine\Domain\ValueObject\PaymentNumber;
 
 class PdoPaymentRepository implements PaymentRepositoryInterface
 {

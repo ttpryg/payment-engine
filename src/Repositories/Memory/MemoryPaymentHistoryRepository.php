@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Repositories\Memory;
 
-use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\PaymentHistory;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentHistory;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentHistoryRepositoryInterface;
 
 class MemoryPaymentHistoryRepository implements PaymentHistoryRepositoryInterface
 {

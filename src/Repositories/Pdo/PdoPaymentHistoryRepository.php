@@ -6,10 +6,10 @@ namespace Ttpryg\PaymentEngine\Repositories\Pdo;
 
 use DateTimeImmutable;
 use PDO;
-use Ttpryg\PaymentEngine\Contracts\PaymentHistoryRepositoryInterface;
-use Ttpryg\PaymentEngine\Entities\PaymentHistory;
-use Ttpryg\PaymentEngine\Enums\PaymentHistoryAction;
-use Ttpryg\PaymentEngine\Enums\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Entity\PaymentHistory;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentHistoryAction;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
+use Ttpryg\PaymentEngine\Domain\Repository\PaymentHistoryRepositoryInterface;
 
 class PdoPaymentHistoryRepository implements PaymentHistoryRepositoryInterface
 {

@@ -5,6 +5,23 @@ All notable changes to `ttpryg/payment-engine` will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- Separated the module into explicit `Domain` and `Application` layers following the
+  module architecture conventions:
+  - `Entities` → `Domain\Entity`
+  - `ValueObjects` → `Domain\ValueObject`
+  - `Enums` → `Domain\Enum`
+  - `Events` → `Domain\Event`
+  - `Exceptions` → `Domain\Exception`
+  - `Services` → `Application\Service`
+  - `DTOs` → `Application\DTO`
+  - Repository interfaces moved from `Contracts` to `Domain\Repository`.
+- `Contracts` now only exposes the gateway (`PaymentGatewayInterface`) and HTTP
+  (`HttpClientInterface`) ports.
+
 ## [1.2.0] - 2026-10-18
 
 ### Added
