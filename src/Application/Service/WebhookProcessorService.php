@@ -37,6 +37,10 @@ class WebhookProcessorService
         private readonly ?PDO $pdo = null
     ) {}
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers
+     */
     public function process(string $gatewayProvider, array $payload, array $headers = []): WebhookVerificationResult
     {
         $paymentGateway = $this->gatewayManager->get($gatewayProvider);
@@ -75,6 +79,9 @@ class WebhookProcessorService
         }
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     private function applyVerifiedWebhook(
         string $gatewayProvider,
         string $fingerprint,

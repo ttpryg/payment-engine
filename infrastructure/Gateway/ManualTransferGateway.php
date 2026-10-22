@@ -23,6 +23,9 @@ class ManualTransferGateway implements PaymentGatewayInterface
         return $this->name;
     }
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function createTransaction(Payment $payment, array $options = []): GatewayResponse
     {
         $ref = 'manual_'.$payment->paymentNumber->value;
@@ -39,6 +42,10 @@ class ManualTransferGateway implements PaymentGatewayInterface
         );
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers
+     */
     public function verifyWebhook(array $payload, array $headers = []): WebhookVerificationResult
     {
         $txRef = $payload['transaction_reference'] ?? $payload['payment_number'] ?? null;

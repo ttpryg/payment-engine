@@ -16,6 +16,11 @@ class PaymentHistory
 
     public readonly ?PaymentStatus $toStatus;
 
+    public DateTimeImmutable $createdAt;
+
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     */
     public function __construct(
         public readonly string $id,
         public readonly string $paymentId,
@@ -26,7 +31,7 @@ class PaymentHistory
         public ?string $actorId = null,
         public ?string $note = null,
         public ?array $metadata = null,
-        public ?DateTimeImmutable $createdAt = null
+        ?DateTimeImmutable $createdAt = null
     ) {
         $this->action = is_string($action) ? PaymentHistoryAction::from($action) : $action;
         $this->fromStatus = is_string($fromStatus) ? PaymentStatus::from($fromStatus) : $fromStatus;

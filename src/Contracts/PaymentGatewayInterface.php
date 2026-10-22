@@ -15,8 +15,15 @@ interface PaymentGatewayInterface
 {
     public function getName(): string;
 
+    /**
+     * @param  array<string, mixed>  $options
+     */
     public function createTransaction(Payment $payment, array $options = []): GatewayResponse;
 
+    /**
+     * @param  array<string, mixed>  $payload
+     * @param  array<string, string>  $headers
+     */
     public function verifyWebhook(array $payload, array $headers = []): WebhookVerificationResult;
 
     public function checkStatus(string $transactionReference): GatewayStatusResponse;

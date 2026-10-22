@@ -9,6 +9,9 @@ use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
 final class GatewayStatusResponse
 {
+    /**
+     * @param  array<string, mixed>|null  $rawResponse
+     */
     public function __construct(
         public readonly PaymentStatus $mappedStatus,
         public readonly ?string $transactionReference = null,

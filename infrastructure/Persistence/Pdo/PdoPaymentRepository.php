@@ -144,6 +144,9 @@ class PdoPaymentRepository implements PaymentRepositoryInterface
         return $this->pdo->getAttribute(PDO::ATTR_DRIVER_NAME) !== 'sqlite';
     }
 
+    /**
+     * @param  array<string, mixed>  $row
+     */
     private function mapToEntity(array $row): Payment
     {
         $currency = (string) $row['currency'];

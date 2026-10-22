@@ -73,6 +73,9 @@ class PdoPaymentAttemptRepository implements PaymentAttemptRepositoryInterface
         return $row ? $this->mapToEntity($row) : null;
     }
 
+    /**
+     * @param  array<string, mixed>  $row
+     */
     private function mapToEntity(array $row): PaymentAttempt
     {
         return new PaymentAttempt(

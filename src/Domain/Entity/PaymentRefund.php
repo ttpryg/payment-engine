@@ -12,6 +12,8 @@ class PaymentRefund
 {
     public RefundStatus $status;
 
+    public DateTimeImmutable $createdAt;
+
     public function __construct(
         public readonly string $id,
         public readonly string $paymentId,
@@ -22,7 +24,7 @@ class PaymentRefund
         public ?string $gatewayRefundId = null,
         public ?string $actorType = null,
         public ?string $actorId = null,
-        public ?DateTimeImmutable $createdAt = null
+        ?DateTimeImmutable $createdAt = null
     ) {
         $this->status = is_string($status) ? RefundStatus::from($status) : $status;
         $this->createdAt = $createdAt ?? new DateTimeImmutable;

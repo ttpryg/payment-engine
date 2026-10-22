@@ -172,8 +172,9 @@ class PaymentEdgeCaseTest extends TestCase
         $refundService->issueRefund('pay-ladder-1', new Money(10000, 'IDR'));
 
         $final = $this->pdoPaymentRepository->findById('pay-ladder-1');
-        $this->assertSame(PaymentStatus::REFUNDED, $final?->status);
-        $this->assertSame(100000, $final?->refundedAmount->amount);
+        $this->assertNotNull($final);
+        $this->assertSame(PaymentStatus::REFUNDED, $final->status);
+        $this->assertSame(100000, $final->refundedAmount->amount);
         $this->assertCount(4, $this->pdoPaymentRefundRepository->findByPaymentId('pay-ladder-1'));
 
         // Any further refund must be rejected and leave the payment untouched.

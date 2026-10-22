@@ -8,6 +8,11 @@ use DateTimeImmutable;
 
 class WebhookEvent
 {
+    public DateTimeImmutable $createdAt;
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public function __construct(
         public readonly string $id,
         public readonly string $gatewayProvider,
@@ -16,7 +21,7 @@ class WebhookEvent
         public readonly array $payload,
         public bool $isProcessed = false,
         public ?DateTimeImmutable $processedAt = null,
-        public ?DateTimeImmutable $createdAt = null
+        ?DateTimeImmutable $createdAt = null
     ) {
         $this->createdAt = $createdAt ?? new DateTimeImmutable;
     }
@@ -27,6 +32,9 @@ class WebhookEvent
         $this->processedAt = new DateTimeImmutable;
     }
 
+    /**
+     * @param  array<string, mixed>  $payload
+     */
     public static function generateFingerprint(array $payload): string
     {
         return hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES));

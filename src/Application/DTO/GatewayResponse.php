@@ -6,6 +6,10 @@ namespace Ttpryg\PaymentEngine\Application\DTO;
 
 final class GatewayResponse
 {
+    /**
+     * @param  array<string, mixed>|null  $metadata
+     * @param  array<string, mixed>|null  $rawResponse
+     */
     public function __construct(
         public readonly bool $isSuccessful,
         public readonly ?string $transactionReference = null,

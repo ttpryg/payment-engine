@@ -26,6 +26,17 @@ trait ManagesTransactions
             return $callback();
         }
 
+        return $this->runInNewTransaction($pdo, $callback);
+    }
+
+    /**
+     * @template TReturn
+     *
+     * @param  callable(): TReturn  $callback
+     * @return TReturn
+     */
+    private function runInNewTransaction(PDO $pdo, callable $callback): mixed
+    {
         $pdo->beginTransaction();
 
         try {

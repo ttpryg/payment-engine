@@ -100,6 +100,9 @@ class PdoWebhookEventRepository implements WebhookEventRepositoryInterface
         return in_array($driverCode, [19, 1062, 1555, 2067, 23505], true);
     }
 
+    /**
+     * @param  array<string, mixed>  $row
+     */
     private function mapToEntity(array $row): WebhookEvent
     {
         return new WebhookEvent(

@@ -12,6 +12,12 @@ class PaymentAttempt
 {
     public AttemptStatus $status;
 
+    public DateTimeImmutable $createdAt;
+
+    /**
+     * @param  array<string, mixed>|null  $rawRequest
+     * @param  array<string, mixed>|null  $rawResponse
+     */
     public function __construct(
         public readonly string $id,
         public readonly string $paymentId,
@@ -21,7 +27,7 @@ class PaymentAttempt
         public readonly Money $amount,
         public ?array $rawRequest = null,
         public ?array $rawResponse = null,
-        public ?DateTimeImmutable $createdAt = null
+        ?DateTimeImmutable $createdAt = null
     ) {
         $this->status = is_string($status) ? AttemptStatus::from($status) : $status;
         $this->createdAt = $createdAt ?? new DateTimeImmutable;
