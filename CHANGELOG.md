@@ -14,9 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `202610180002_add_payment_indexes.php`
 - `DatabaseMigrator` is now a thin wrapper around the package `MigrationRunner` and
   exposes `migrate()`, `rollback()`, and `appliedMigrations()`.
+- `Application\DTO\CreatePaymentRequest` encapsulating all payment creation
+  parameters.
 
 ### Changed
 
+- `PaymentService::createPayment()` now accepts a single `CreatePaymentRequest`
+  object instead of twelve individual parameters (breaking for direct callers).
 - Database schema is now created and upgraded exclusively through migrations; the
   raw `database/schema.sql` snapshot was removed.
 - Integration tests now bootstrap their schema through `DatabaseMigrator` instead of

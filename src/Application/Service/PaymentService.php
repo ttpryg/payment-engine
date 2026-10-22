@@ -7,22 +7,19 @@ namespace Ttpryg\PaymentEngine\Application\Service;
 use DateTimeImmutable;
 use PDO;
 use Psr\EventDispatcher\EventDispatcherInterface;
+use Ttpryg\PaymentEngine\Application\DTO\CreatePaymentRequest;
 use Ttpryg\PaymentEngine\Concerns\ManagesTransactions;
 use Ttpryg\PaymentEngine\Domain\Entity\Payment;
 use Ttpryg\PaymentEngine\Domain\Entity\PaymentAttempt;
 use Ttpryg\PaymentEngine\Domain\Entity\PaymentHistory;
 use Ttpryg\PaymentEngine\Domain\Enum\AttemptStatus;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentHistoryAction;
-use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
 use Ttpryg\PaymentEngine\Domain\Event\PaymentCreatedEvent;
 use Ttpryg\PaymentEngine\Domain\Exception\PaymentNotFoundException;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentAttemptRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentRepositoryInterface;
-use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
-use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
-use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PaymentNumber;
 use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
 
@@ -40,49 +37,37 @@ class PaymentService
         private readonly ?PDO $pdo = null
     ) {}
 
-    public function createPayment(
-        string $id,
-        PayableReference $payable,
-        Money|int $amount,
-        PaymentMethod|string $method = PaymentMethod::BANK_TRANSFER,
-        string $gatewayProvider = 'manual',
-        ?PayerReference $payer = null,
-        Money|int $fee = 0,
-        ?string $paymentNumber = null,
-        ?DateTimeImmutable $expiresAt = null,
-        ?array $metadata = null,
-        ?string $actorType = null,
-        ?string $actorId = null
-    ): Payment {
-        $resolvedNumber = $paymentNumber ?? (string) PaymentNumber::generate();
+    public function createPayment(CreatePaymentRequest $request): Payment
+    {
+        $resolvedNumber = $request->paymentNumber ?? (string) PaymentNumber::generate();
 
         $payment = new Payment(
-            id: $id,
+            id: $request->id,
             paymentNumber: $resolvedNumber,
-            payable: $payable,
-            payer: $payer,
-            method: $method,
-            gatewayProvider: $gatewayProvider,
+            payable: $request->payable,
+            payer: $request->payer,
+            method: $request->method,
+            gatewayProvider: $request->gatewayProvider,
             status: PaymentStatus::PENDING,
-            amount: $amount,
-            fee: $fee,
-            expiresAt: $expiresAt,
-            metadata: $metadata
+            amount: $request->amount,
+            fee: $request->fee,
+            expiresAt: $request->expiresAt,
+            metadata: $request->metadata
         );
 
         $attempt = null;
-        if ($this->gatewayManager instanceof GatewayManager && $this->gatewayManager->has($gatewayProvider)) {
-            $gateway = $this->gatewayManager->get($gatewayProvider);
+        if ($this->gatewayManager instanceof GatewayManager && $this->gatewayManager->has($request->gatewayProvider)) {
+            $gateway = $this->gatewayManager->get($request->gatewayProvider);
             $response = $gateway->createTransaction($payment);
 
             $attempt = new PaymentAttempt(
                 id: 'att-'.bin2hex(random_bytes(8)),
                 paymentId: $payment->id,
-                gatewayProvider: $gatewayProvider,
+                gatewayProvider: $request->gatewayProvider,
                 transactionReference: $response->transactionReference,
                 status: $response->isSuccessful ? AttemptStatus::PENDING : AttemptStatus::FAILED,
                 amount: $payment->totalAmount,
-                rawRequest: ['gateway' => $gatewayProvider],
+                rawRequest: ['gateway' => $request->gatewayProvider],
                 rawResponse: $response->rawResponse
             );
 
@@ -102,10 +87,10 @@ class PaymentService
             paymentId: $payment->id,
             action: PaymentHistoryAction::PAYMENT_CREATED,
             toStatus: PaymentStatus::PENDING,
-            actorType: $actorType,
-            actorId: $actorId,
-            note: "Payment created for payable {$payable->type}:{$payable->id}",
-            metadata: ['gateway_provider' => $gatewayProvider]
+            actorType: $request->actorType,
+            actorId: $request->actorId,
+            note: "Payment created for payable {$request->payable->type}:{$request->payable->id}",
+            metadata: ['gateway_provider' => $request->gatewayProvider]
         );
 
         $this->runInTransaction($this->pdo, function () use ($payment, $attempt, $paymentHistory): void {

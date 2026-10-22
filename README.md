@@ -522,6 +522,7 @@ use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentHistoryReposit
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoWebhookEventRepository;
+use Ttpryg\PaymentEngine\Application\DTO\CreatePaymentRequest;
 use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentExpirationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;
@@ -554,7 +555,7 @@ $expirationService = new PaymentExpirationService($paymentRepo, $statusService);
 $reconciliationService = new GatewayReconciliationService($gatewayManager, $paymentRepo, $attemptRepo, $statusService, pdo: $pdo);
 
 // 4. Create Payment
-$payment = $paymentService->createPayment(
+$payment = $paymentService->createPayment(new CreatePaymentRequest(
     id: 'pay-001',
     payable: new PayableReference('order', 'ORD-2026-001'),
     amount: 250000, // IDR 250,000 (integer)
@@ -562,7 +563,7 @@ $payment = $paymentService->createPayment(
     gatewayProvider: 'mock',
     payer: new PayerReference('user', 'usr-100'),
     fee: 1500
-);
+));
 
 // 5. Ingest Inbound Gateway Webhook (Safe & Idempotent)
 $webhookProcessor->process('mock', [
