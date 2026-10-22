@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Domain\ValueObject;
 
-use InvalidArgumentException;
+use Ttpryg\PaymentEngine\Domain\Exception\InvalidPaymentArgumentException;
 
 final class PayableReference
 {
@@ -13,7 +13,7 @@ final class PayableReference
         public readonly string $id
     ) {
         if (trim($type) === '' || trim($id) === '') {
-            throw new InvalidArgumentException('Payable type and ID cannot be empty.');
+            throw new InvalidPaymentArgumentException('Payable type and ID cannot be empty.');
         }
     }
 

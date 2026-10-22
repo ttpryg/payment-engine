@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Domain\ValueObject;
 
-use InvalidArgumentException;
+use Ttpryg\PaymentEngine\Domain\Exception\InvalidPaymentArgumentException;
 
 final class Money
 {
@@ -13,7 +13,7 @@ final class Money
         public readonly string $currency = 'IDR'
     ) {
         if ($amount < 0) {
-            throw new InvalidArgumentException('Money amount cannot be negative.');
+            throw new InvalidPaymentArgumentException('Money amount cannot be negative.');
         }
     }
 
@@ -29,7 +29,7 @@ final class Money
         $this->ensureSameCurrency($money);
         $result = $this->amount - $money->amount;
         if ($result < 0) {
-            throw new InvalidArgumentException('Subtraction results in negative money amount.');
+            throw new InvalidPaymentArgumentException('Subtraction results in negative money amount.');
         }
 
         return new self($result, $this->currency);
@@ -38,7 +38,7 @@ final class Money
     public function multiply(int|float $multiplier): self
     {
         if ($multiplier < 0) {
-            throw new InvalidArgumentException('Multiplier cannot be negative.');
+            throw new InvalidPaymentArgumentException('Multiplier cannot be negative.');
         }
 
         return new self((int) round($this->amount * $multiplier), $this->currency);
@@ -90,7 +90,7 @@ final class Money
     private function ensureSameCurrency(Money $money): void
     {
         if ($this->currency !== $money->currency) {
-            throw new InvalidArgumentException("Cannot operate on different currencies: {$this->currency} and {$money->currency}");
+            throw new InvalidPaymentArgumentException("Cannot operate on different currencies: {$this->currency} and {$money->currency}");
         }
     }
 }

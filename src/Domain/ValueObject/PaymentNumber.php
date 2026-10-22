@@ -4,15 +4,15 @@ declare(strict_types=1);
 
 namespace Ttpryg\PaymentEngine\Domain\ValueObject;
 
-use InvalidArgumentException;
 use Stringable;
+use Ttpryg\PaymentEngine\Domain\Exception\InvalidPaymentArgumentException;
 
 final class PaymentNumber implements Stringable
 {
     public function __construct(public readonly string $value)
     {
         if (trim($value) === '') {
-            throw new InvalidArgumentException('Payment number cannot be empty.');
+            throw new InvalidPaymentArgumentException('Payment number cannot be empty.');
         }
     }
 

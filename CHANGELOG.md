@@ -19,6 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Database migrations use portable DDL and dialect-aware index creation, verified
+  against SQLite and MySQL/MariaDB.
+- Value object validation now throws `InvalidPaymentArgumentException`, which
+  implements the module's `ExceptionInterface` while remaining an
+  `InvalidArgumentException`.
 - Declared `psr/event-dispatcher` as a direct runtime dependency so the PSR-14
   contract used by the services is explicit and version-bound, and removed the
   unused `ttpryg/event-dispatcher` dependency.
@@ -63,6 +68,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   provider by implementing `PaymentGatewayInterface` or extending `AbstractHttpGateway`.
 - Removed the custom `Infrastructure\Database\MigrationRunner`, the raw SQL migration
   `database/migrations/001_add_payment_indexes.sql`, and `database/schema.sql`.
+- Removed the unused Nginx web service and `.docker/nginx` configuration from the
+  development stack.
 
 ## [1.2.0] - 2026-10-18
 
