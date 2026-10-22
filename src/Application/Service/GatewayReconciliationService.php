@@ -17,7 +17,7 @@ use Ttpryg\PaymentEngine\Domain\Exception\InvalidStatusTransitionException;
 use Ttpryg\PaymentEngine\Domain\Exception\PaymentNotFoundException;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentAttemptRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentRepositoryInterface;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
 
 class GatewayReconciliationService
 {

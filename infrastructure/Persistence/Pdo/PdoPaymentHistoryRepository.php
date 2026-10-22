@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ttpryg\PaymentEngine\Repositories\Pdo;
+namespace Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo;
 
 use DateTimeImmutable;
 use PDO;

@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ttpryg\PaymentEngine\Repositories\Memory;
+namespace Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory;
 
 use Ttpryg\PaymentEngine\Domain\Entity\PaymentAttempt;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentAttemptRepositoryInterface;

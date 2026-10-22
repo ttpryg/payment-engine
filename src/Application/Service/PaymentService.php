@@ -24,7 +24,7 @@ use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PaymentNumber;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
 
 class PaymentService
 {

@@ -14,8 +14,8 @@ use Ttpryg\PaymentEngine\Domain\Event\PaymentCancelledEvent;
 use Ttpryg\PaymentEngine\Domain\Event\PaymentCompletedEvent;
 use Ttpryg\PaymentEngine\Domain\Exception\InvalidStatusTransitionException;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
 
 class PaymentStatusTransitionTest extends TestCase
 {

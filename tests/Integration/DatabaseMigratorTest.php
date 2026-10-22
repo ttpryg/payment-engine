@@ -6,8 +6,8 @@ namespace Ttpryg\PaymentEngine\Tests\Integration;
 
 use PDO;
 use PHPUnit\Framework\TestCase;
-use Ttpryg\PaymentEngine\Database\DatabaseMigrator;
-use Ttpryg\PaymentEngine\Database\MigrationRunner;
+use Ttpryg\PaymentEngine\Infrastructure\Database\DatabaseMigrator;
+use Ttpryg\PaymentEngine\Infrastructure\Database\MigrationRunner;
 
 class DatabaseMigratorTest extends TestCase
 {

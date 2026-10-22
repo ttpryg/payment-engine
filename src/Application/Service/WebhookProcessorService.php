@@ -21,7 +21,7 @@ use Ttpryg\PaymentEngine\Domain\Repository\PaymentAttemptRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\WebhookEventRepositoryInterface;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
 
 class WebhookProcessorService
 {

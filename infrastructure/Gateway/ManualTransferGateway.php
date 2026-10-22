@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ttpryg\PaymentEngine\Gateways;
+namespace Ttpryg\PaymentEngine\Infrastructure\Gateway;
 
 use Ttpryg\PaymentEngine\Application\DTO\GatewayResponse;
 use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;

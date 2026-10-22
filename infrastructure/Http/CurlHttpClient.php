@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ttpryg\PaymentEngine\Http;
+namespace Ttpryg\PaymentEngine\Infrastructure\Http;
 
 use Ttpryg\PaymentEngine\Application\DTO\HttpResponse;
 use Ttpryg\PaymentEngine\Contracts\HttpClientInterface;
