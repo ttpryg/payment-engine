@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
+use Ttpryg\PaymentEngine\Application\DTO\CreatePaymentRequest;
 use Ttpryg\PaymentEngine\Application\Service\PaymentService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
@@ -53,7 +54,7 @@ class PaymentServiceTest extends TestCase
 
     public function test_create_payment_with_mock_gateway_and_attempts(): void
     {
-        $payment = $this->paymentService->createPayment(
+        $payment = $this->paymentService->createPayment(new CreatePaymentRequest(
             id: 'pay-001',
             payable: new PayableReference('order', 'ord-777'),
             amount: 500000,
@@ -61,7 +62,7 @@ class PaymentServiceTest extends TestCase
             gatewayProvider: 'mock',
             payer: new PayerReference('user', 'usr-999'),
             fee: 4500
-        );
+        ));
 
         $this->assertEquals('pay-001', $payment->id);
         $this->assertEquals(PaymentStatus::PENDING, $payment->status);
@@ -82,13 +83,13 @@ class PaymentServiceTest extends TestCase
 
     public function test_get_payments_by_payable_and_payer(): void
     {
-        $this->paymentService->createPayment(
+        $this->paymentService->createPayment(new CreatePaymentRequest(
             id: 'pay-002',
             payable: new PayableReference('invoice', 'inv-101'),
             amount: 250000,
             gatewayProvider: 'manual',
             payer: new PayerReference('customer', 'cust-55')
-        );
+        ));
 
         $payablePayments = $this->paymentService->getPaymentsByPayable('invoice', 'inv-101');
         $this->assertCount(1, $payablePayments);
