@@ -7,8 +7,6 @@ namespace Ttpryg\PaymentEngine\Tests\Integration;
 use DateTimeImmutable;
 use PDO;
 use PHPUnit\Framework\TestCase;
-use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
-use Ttpryg\EventDispatcher\Provider\ListenerProvider;
 use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;
 use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;
@@ -32,6 +30,7 @@ use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentHistoryReposit
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoWebhookEventRepository;
+use Ttpryg\PaymentEngine\Tests\Support\RecordingEventDispatcher;
 
 class PaymentEdgeCaseTest extends TestCase
 {
@@ -64,11 +63,10 @@ class PaymentEdgeCaseTest extends TestCase
     public function test_concurrent_duplicate_webhook_hits_unique_constraint_and_is_a_noop(): void
     {
         $completedEvents = 0;
-        $listenerProvider = new ListenerProvider;
-        $listenerProvider->addListener(PaymentCompletedEvent::class, function () use (&$completedEvents): void {
+        $eventDispatcher = new RecordingEventDispatcher;
+        $eventDispatcher->addListener(PaymentCompletedEvent::class, function () use (&$completedEvents): void {
             $completedEvents++;
         });
-        $eventDispatcher = new EventDispatcher($listenerProvider);
 
         $this->seedPendingPayment('mock', 'pay-race-1', 'PAY-RACE-1', 'mock_tx_race_1');
 

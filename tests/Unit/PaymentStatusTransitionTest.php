@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
-use Ttpryg\EventDispatcher\Provider\ListenerProvider;
 use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
 use Ttpryg\PaymentEngine\Domain\Entity\Payment;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
@@ -16,6 +14,7 @@ use Ttpryg\PaymentEngine\Domain\Exception\InvalidStatusTransitionException;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Tests\Support\RecordingEventDispatcher;
 
 class PaymentStatusTransitionTest extends TestCase
 {
@@ -23,7 +22,7 @@ class PaymentStatusTransitionTest extends TestCase
 
     private MemoryPaymentHistoryRepository $memoryPaymentHistoryRepository;
 
-    private ListenerProvider $listenerProvider;
+    private RecordingEventDispatcher $eventDispatcher;
 
     private PaymentStatusService $paymentStatusService;
 
@@ -31,20 +30,19 @@ class PaymentStatusTransitionTest extends TestCase
     {
         $this->memoryPaymentRepository = new MemoryPaymentRepository;
         $this->memoryPaymentHistoryRepository = new MemoryPaymentHistoryRepository;
-        $this->listenerProvider = new ListenerProvider;
-        $eventDispatcher = new EventDispatcher($this->listenerProvider);
+        $this->eventDispatcher = new RecordingEventDispatcher;
 
         $this->paymentStatusService = new PaymentStatusService(
             $this->memoryPaymentRepository,
             $this->memoryPaymentHistoryRepository,
-            $eventDispatcher
+            $this->eventDispatcher
         );
     }
 
     public function test_valid_status_transitions_and_events(): void
     {
         $completedDispatched = false;
-        $this->listenerProvider->addListener(PaymentCompletedEvent::class, function (PaymentCompletedEvent $paymentCompletedEvent) use (&$completedDispatched): void {
+        $this->eventDispatcher->addListener(PaymentCompletedEvent::class, function (PaymentCompletedEvent $paymentCompletedEvent) use (&$completedDispatched): void {
             $completedDispatched = true;
             $this->assertEquals('pay-test-1', $paymentCompletedEvent->payment->id);
         });
@@ -105,7 +103,7 @@ class PaymentStatusTransitionTest extends TestCase
     public function test_cancel_payment_dispatches_event(): void
     {
         $cancelledDispatched = false;
-        $this->listenerProvider->addListener(PaymentCancelledEvent::class, function (PaymentCancelledEvent $paymentCancelledEvent) use (&$cancelledDispatched): void {
+        $this->eventDispatcher->addListener(PaymentCancelledEvent::class, function (PaymentCancelledEvent $paymentCancelledEvent) use (&$cancelledDispatched): void {
             $cancelledDispatched = true;
             $this->assertEquals('Customer request', $paymentCancelledEvent->reason);
         });

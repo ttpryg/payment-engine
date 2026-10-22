@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
-use Ttpryg\EventDispatcher\Provider\ListenerProvider;
 use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;
 use Ttpryg\PaymentEngine\Domain\Entity\Payment;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
@@ -20,6 +18,7 @@ use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRefundRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Tests\Support\RecordingEventDispatcher;
 
 class PaymentRefundServiceTest extends TestCase
 {
@@ -29,7 +28,7 @@ class PaymentRefundServiceTest extends TestCase
 
     private MemoryPaymentHistoryRepository $memoryPaymentHistoryRepository;
 
-    private ListenerProvider $listenerProvider;
+    private RecordingEventDispatcher $eventDispatcher;
 
     private PaymentRefundService $paymentRefundService;
 
@@ -42,15 +41,14 @@ class PaymentRefundServiceTest extends TestCase
         $gatewayManager = new GatewayManager;
         $gatewayManager->register(new MockPaymentGateway('mock'));
 
-        $this->listenerProvider = new ListenerProvider;
-        $eventDispatcher = new EventDispatcher($this->listenerProvider);
+        $this->eventDispatcher = new RecordingEventDispatcher;
 
         $this->paymentRefundService = new PaymentRefundService(
             $this->memoryPaymentRepository,
             $this->memoryPaymentRefundRepository,
             $this->memoryPaymentHistoryRepository,
             $gatewayManager,
-            $eventDispatcher
+            $this->eventDispatcher
         );
     }
 
@@ -59,11 +57,11 @@ class PaymentRefundServiceTest extends TestCase
         $partialEventFired = false;
         $fullEventFired = false;
 
-        $this->listenerProvider->addListener(PaymentPartiallyRefundedEvent::class, function () use (&$partialEventFired): void {
+        $this->eventDispatcher->addListener(PaymentPartiallyRefundedEvent::class, function () use (&$partialEventFired): void {
             $partialEventFired = true;
         });
 
-        $this->listenerProvider->addListener(PaymentRefundedEvent::class, function () use (&$fullEventFired): void {
+        $this->eventDispatcher->addListener(PaymentRefundedEvent::class, function () use (&$fullEventFired): void {
             $fullEventFired = true;
         });
 
