@@ -7,8 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `ttpryg/database-migrator` dependency and PHP class migrations:
+  - `202610180001_create_payments_tables.php`
+  - `202610180002_add_payment_indexes.php`
+- `DatabaseMigrator` is now a thin wrapper around the package `MigrationRunner` and
+  exposes `migrate()`, `rollback()`, and `appliedMigrations()`.
+
 ### Changed
 
+- Database schema is now created and upgraded exclusively through migrations; the
+  raw `database/schema.sql` snapshot was removed.
+- Integration tests now bootstrap their schema through `DatabaseMigrator` instead of
+  executing `schema.sql`.
 - Separated the module into explicit `Domain` and `Application` layers following the
   module architecture conventions:
   - `Entities` → `Domain\Entity`
@@ -38,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the bundled `MidtransGateway` and `XenditGateway` provider-specific drivers
   (and their dedicated tests). The engine remains provider-agnostic; integrate a
   provider by implementing `PaymentGatewayInterface` or extending `AbstractHttpGateway`.
+- Removed the custom `Infrastructure\Database\MigrationRunner`, the raw SQL migration
+  `database/migrations/001_add_payment_indexes.sql`, and `database/schema.sql`.
 
 ## [1.2.0] - 2026-10-18
 

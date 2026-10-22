@@ -5,55 +5,54 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Infrastructure\Database;
 
 use PDO;
-use RuntimeException;
-use Throwable;
+use Ttpryg\DatabaseMigrator\MigrationRunner;
 
 /**
- * Entry point migrasi schema payment-engine.
+ * Thin convenience wrapper around the shared `ttpryg/database-migrator` runner.
  *
- * - Fresh install: menjalankan `database/schema.sql` (source of truth terkini,
- *   idempotent) lalu menandai seluruh migrasi incremental sebagai baseline.
- * - Database existing: menjalankan migrasi incremental yang belum diterapkan,
- *   tanpa menyentuh data lama (schema.sql memakai CREATE TABLE/INDEX IF NOT EXISTS).
+ * The module keeps its own tracker table so it can share a database with other
+ * modules without migration-name collisions.
  */
 class DatabaseMigrator
 {
-    public function __construct(private readonly PDO $pdo) {}
+    private const TRACKER_TABLE = 'payment_engine_migrations';
 
-    public function migrate(): void
+    private readonly MigrationRunner $runner;
+
+    public function __construct(PDO $pdo, ?string $migrationsPath = null)
     {
-        // Deteksi sebelum exec: fresh install belum punya tabel payments.
-        $isFreshInstall = ! $this->tableExists('payments');
-
-        $sql = file_get_contents(__DIR__.'/../../database/schema.sql');
-        if ($sql === false) {
-            throw new RuntimeException('Unable to load payment-engine schema.sql file.');
-        }
-
-        $this->pdo->exec($sql);
-
-        $runner = new MigrationRunner($this->pdo);
-
-        if ($isFreshInstall) {
-            // Fresh install: schema.sql sudah mencakup definisi terkini →
-            // tandai semua migrasi sebagai baseline agar tidak dieksekusi ulang.
-            $runner->markAllAsMigrated();
-
-            return;
-        }
-
-        // Database existing: jalankan migrasi inkremental yang belum diterapkan.
-        $runner->migrate();
+        $this->runner = new MigrationRunner(
+            $pdo,
+            $migrationsPath ?? __DIR__.'/../../database/migrations',
+            self::TRACKER_TABLE
+        );
     }
 
-    private function tableExists(string $table): bool
+    /**
+     * Apply every migration that has not been recorded yet.
+     *
+     * @return array<int, string> Names of the migrations executed in this run.
+     */
+    public function migrate(): array
     {
-        try {
-            $stmt = $this->pdo->query("SELECT 1 FROM {$table} LIMIT 1");
-        } catch (Throwable) {
-            return false;
-        }
+        return $this->runner->migrate();
+    }
 
-        return $stmt !== false;
+    /**
+     * Revert the most recently applied migrations.
+     *
+     * @return array<int, string> Names of the reverted migrations, newest first.
+     */
+    public function rollback(int $steps = 1): array
+    {
+        return $this->runner->rollback($steps);
+    }
+
+    /**
+     * @return array<int, string> Names of the migrations recorded in the tracker.
+     */
+    public function appliedMigrations(): array
+    {
+        return $this->runner->appliedMigrations();
     }
 }

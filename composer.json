@@ -11,6 +11,7 @@
     ],
     "require": {
         "php": "^8.1",
+        "ttpryg/database-migrator": "^1.0",
         "ttpryg/event-dispatcher": "^1.0"
     },
     "require-dev": {

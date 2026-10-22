@@ -7,21 +7,29 @@ namespace Ttpryg\PaymentEngine\Tests\Integration;
 use PDO;
 use PHPUnit\Framework\TestCase;
 use Ttpryg\PaymentEngine\Infrastructure\Database\DatabaseMigrator;
-use Ttpryg\PaymentEngine\Infrastructure\Database\MigrationRunner;
 
 class DatabaseMigratorTest extends TestCase
 {
     private PDO $pdo;
 
+    private DatabaseMigrator $migrator;
+
     protected function setUp(): void
     {
         $this->pdo = new PDO('sqlite::memory:');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+        $this->migrator = new DatabaseMigrator($this->pdo);
     }
 
-    public function test_fresh_install_creates_schema_and_baselines_migrations(): void
+    public function test_migrate_creates_schema_and_records_migrations(): void
     {
-        (new DatabaseMigrator($this->pdo))->migrate();
+        $executed = $this->migrator->migrate();
+
+        $this->assertSame([
+            '202610180001_create_payments_tables',
+            '202610180002_add_payment_indexes',
+        ], $executed);
 
         $this->assertTrue($this->tableExists('payments'));
         $this->assertTrue($this->tableExists('payment_attempts'));
@@ -31,51 +39,57 @@ class DatabaseMigratorTest extends TestCase
         $this->assertTrue($this->indexExists('idx_payments_payable'));
         $this->assertTrue($this->indexExists('uq_webhook_fingerprint'));
 
-        $applied = (new MigrationRunner($this->pdo))->appliedMigrations();
-        $this->assertContains('001_add_payment_indexes', $applied);
+        $this->assertSame($executed, $this->migrator->appliedMigrations());
     }
 
-    public function test_migration_runner_adds_indexes_to_legacy_database(): void
+    public function test_migrate_is_idempotent(): void
     {
-        $this->createLegacyTables();
+        $this->migrator->migrate();
+
+        $this->assertSame([], $this->migrator->migrate());
+        $this->assertCount(2, $this->migrator->appliedMigrations());
+    }
+
+    public function test_rollback_reverts_the_latest_migration_only(): void
+    {
+        $this->migrator->migrate();
+
+        $rolledBack = $this->migrator->rollback();
+
+        $this->assertSame(['202610180002_add_payment_indexes'], $rolledBack);
         $this->assertFalse($this->indexExists('idx_payments_payable'));
-
-        $executed = (new MigrationRunner($this->pdo))->migrate();
-
-        $this->assertContains('001_add_payment_indexes', $executed);
-        $this->assertTrue($this->indexExists('idx_payments_payable'));
-        $this->assertTrue($this->indexExists('idx_payments_status'));
-        $this->assertTrue($this->indexExists('idx_payment_attempts_payment_id'));
-        $this->assertTrue($this->indexExists('uq_webhook_fingerprint'));
+        $this->assertTrue($this->tableExists('payments'));
+        $this->assertSame(['202610180001_create_payments_tables'], $this->migrator->appliedMigrations());
     }
 
-    public function test_migration_runner_is_idempotent(): void
+    public function test_rollback_of_all_migrations_drops_the_tables(): void
     {
-        $this->createLegacyTables();
-        $runner = new MigrationRunner($this->pdo);
+        $this->migrator->migrate();
 
-        $this->assertContains('001_add_payment_indexes', $runner->migrate());
-        $this->assertSame([], $runner->migrate());
+        $rolledBack = $this->migrator->rollback(2);
+
+        $this->assertSame([
+            '202610180002_add_payment_indexes',
+            '202610180001_create_payments_tables',
+        ], $rolledBack);
+        $this->assertFalse($this->tableExists('payments'));
+        $this->assertFalse($this->tableExists('webhook_events'));
+        $this->assertSame([], $this->migrator->appliedMigrations());
     }
 
-    public function test_database_migrator_is_idempotent(): void
-    {
-        $migrator = new DatabaseMigrator($this->pdo);
-
-        $migrator->migrate();
-        $migrator->migrate();
-
-        $this->assertSame(1, count((new MigrationRunner($this->pdo))->appliedMigrations()));
-    }
-
-    public function test_existing_database_gets_upgraded_without_losing_data(): void
+    public function test_existing_database_gets_indexes_without_losing_data(): void
     {
         $this->createLegacyTables();
         $this->pdo->exec("INSERT INTO payments (id, payable_type, payable_id, status) VALUES ('p1', 'order', 'o1', 'pending')");
 
-        (new DatabaseMigrator($this->pdo))->migrate();
+        $this->assertFalse($this->indexExists('idx_payments_payable'));
+
+        $this->migrator->migrate();
 
         $this->assertTrue($this->indexExists('idx_payments_payable'));
+        $this->assertTrue($this->indexExists('idx_payments_status'));
+        $this->assertTrue($this->indexExists('idx_payment_attempts_payment_id'));
+        $this->assertTrue($this->indexExists('uq_webhook_fingerprint'));
         $this->assertSame(1, $this->countRows('payments'));
     }
 

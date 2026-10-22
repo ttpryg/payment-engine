@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "cde0a693af42bc0b2991d8c57a88dfca",
+    "content-hash": "2415e4a76e451010f4e8b225b608303d",
     "packages": [
         {
             "name": "psr/event-dispatcher",
@@ -55,6 +55,61 @@
                 "source": "https://github.com/php-fig/event-dispatcher/tree/1.0.0"
             },
             "time": "2019-01-08T18:20:26+00:00"
+        },
+        {
+            "name": "ttpryg/database-migrator",
+            "version": "1.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ttpryg/database-migrator.git",
+                "reference": "b65f2330164594d380af50e374736f5de1bd1c6a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ttpryg/database-migrator/zipball/b65f2330164594d380af50e374736f5de1bd1c6a",
+                "reference": "b65f2330164594d380af50e374736f5de1bd1c6a",
+                "shasum": ""
+            },
+            "require": {
+                "ext-pdo": "*",
+                "php": "^8.1"
+            },
+            "require-dev": {
+                "laravel/pint": "^1.20",
+                "phpstan/phpstan": "^2.3",
+                "phpunit/phpunit": "^10.0",
+                "rector/rector": "^2.6"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Ttpryg\\DatabaseMigrator\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Toto",
+                    "email": "totoprayogo1916@gmail.com",
+                    "homepage": "https://ttpryg.my.id"
+                }
+            ],
+            "description": "Framework-agnostic PDO schema migration runner with tracking and rollback for PHP 8.1+.",
+            "keywords": [
+                "database",
+                "migration",
+                "migrator",
+                "pdo",
+                "schema"
+            ],
+            "support": {
+                "issues": "https://github.com/ttpryg/database-migrator/issues",
+                "source": "https://github.com/ttpryg/database-migrator/tree/1.0.0"
+            },
+            "time": "2026-10-20T13:21:29+00:00"
         },
         {
             "name": "ttpryg/event-dispatcher",

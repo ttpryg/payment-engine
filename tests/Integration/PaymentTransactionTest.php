@@ -20,6 +20,7 @@ use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
+use Ttpryg\PaymentEngine\Infrastructure\Database\DatabaseMigrator;
 use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
 use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentAttemptRepository;
@@ -47,8 +48,7 @@ class PaymentTransactionTest extends TestCase
         $this->pdo = new PDO('sqlite::memory:');
         $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-        $schema = file_get_contents(__DIR__.'/../../database/schema.sql');
-        $this->pdo->exec($schema);
+        (new DatabaseMigrator($this->pdo))->migrate();
 
         $this->pdoPaymentRepository = new PdoPaymentRepository($this->pdo);
         $this->pdoPaymentAttemptRepository = new PdoPaymentAttemptRepository($this->pdo);

@@ -443,108 +443,22 @@ For each candidate the service resolves the latest payment attempt with a transa
 
 ---
 
-## 🗄️ 10. Database Schema
+## 🗄️ 10. Database Migrations
 
-Run the SQL script from `database/schema.sql`:
+Schema changes are managed exclusively through
+[`ttpryg/database-migrator`](https://github.com/ttpryg/database-migrator). Every
+migration is a PHP class that returns a `Migration` instance with `up()` and
+`down()` methods:
 
-```sql
-CREATE TABLE IF NOT EXISTS payments (
-    id VARCHAR(36) PRIMARY KEY,
-    payment_number VARCHAR(50) NOT NULL UNIQUE,
-    payable_type VARCHAR(50) NOT NULL,
-    payable_id VARCHAR(100) NOT NULL,
-    payer_type VARCHAR(50) NULL,
-    payer_id VARCHAR(100) NULL,
-    method VARCHAR(50) NOT NULL,
-    gateway_provider VARCHAR(50) NOT NULL,
-    status VARCHAR(30) NOT NULL,
-    currency VARCHAR(3) NOT NULL DEFAULT 'IDR',
-    amount BIGINT NOT NULL DEFAULT 0,
-    fee BIGINT NOT NULL DEFAULT 0,
-    total_amount BIGINT NOT NULL DEFAULT 0,
-    paid_amount BIGINT NOT NULL DEFAULT 0,
-    refunded_amount BIGINT NOT NULL DEFAULT 0,
-    expires_at DATETIME NULL,
-    paid_at DATETIME NULL,
-    metadata TEXT NULL,
-    created_at DATETIME NOT NULL,
-    updated_at DATETIME NOT NULL
-);
-
-CREATE INDEX IF NOT EXISTS idx_payments_payable ON payments (payable_type, payable_id);
-CREATE INDEX IF NOT EXISTS idx_payments_payer ON payments (payer_type, payer_id);
-CREATE INDEX IF NOT EXISTS idx_payments_status ON payments (status);
-CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments (created_at);
-
-CREATE TABLE IF NOT EXISTS payment_attempts (
-    id VARCHAR(36) PRIMARY KEY,
-    payment_id VARCHAR(36) NOT NULL,
-    gateway_provider VARCHAR(50) NOT NULL,
-    transaction_reference VARCHAR(150) NULL,
-    status VARCHAR(30) NOT NULL,
-    amount BIGINT NOT NULL,
-    currency VARCHAR(3) NOT NULL DEFAULT 'IDR',
-    raw_request TEXT NULL,
-    raw_response TEXT NULL,
-    created_at DATETIME NOT NULL,
-    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_payment_attempts_payment_id ON payment_attempts (payment_id);
-CREATE INDEX IF NOT EXISTS idx_attempts_tx_ref ON payment_attempts (gateway_provider, transaction_reference);
-
-CREATE TABLE IF NOT EXISTS payment_refunds (
-    id VARCHAR(36) PRIMARY KEY,
-    payment_id VARCHAR(36) NOT NULL,
-    refund_number VARCHAR(50) NOT NULL UNIQUE,
-    amount BIGINT NOT NULL,
-    currency VARCHAR(3) NOT NULL DEFAULT 'IDR',
-    reason TEXT NULL,
-    status VARCHAR(30) NOT NULL DEFAULT 'completed',
-    gateway_refund_id VARCHAR(150) NULL,
-    actor_type VARCHAR(50) NULL,
-    actor_id VARCHAR(100) NULL,
-    created_at DATETIME NOT NULL,
-    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_payment_refunds_payment_id ON payment_refunds (payment_id);
-
-CREATE TABLE IF NOT EXISTS payment_histories (
-    id VARCHAR(36) PRIMARY KEY,
-    payment_id VARCHAR(36) NOT NULL,
-    action VARCHAR(50) NOT NULL,
-    from_status VARCHAR(30) NULL,
-    to_status VARCHAR(30) NULL,
-    actor_type VARCHAR(50) NULL,
-    actor_id VARCHAR(100) NULL,
-    note TEXT NULL,
-    metadata TEXT NULL,
-    created_at DATETIME NOT NULL,
-    FOREIGN KEY (payment_id) REFERENCES payments(id) ON DELETE CASCADE
-);
-
-CREATE INDEX IF NOT EXISTS idx_payment_histories_payment_id ON payment_histories (payment_id);
-
-CREATE TABLE IF NOT EXISTS webhook_events (
-    id VARCHAR(36) PRIMARY KEY,
-    gateway_provider VARCHAR(50) NOT NULL,
-    event_id VARCHAR(150) NULL,
-    payload_fingerprint VARCHAR(64) NOT NULL,
-    payload TEXT NOT NULL,
-    is_processed TINYINT(1) NOT NULL DEFAULT 0,
-    processed_at DATETIME NULL,
-    created_at DATETIME NOT NULL
-);
-
-CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_fingerprint ON webhook_events (gateway_provider, payload_fingerprint);
-CREATE UNIQUE INDEX IF NOT EXISTS uq_webhook_event_id ON webhook_events (gateway_provider, event_id);
+```text
+database/migrations/
+├── 202610180001_create_payments_tables.php
+└── 202610180002_add_payment_indexes.php
 ```
 
-### Versioned Migrations
-
-Instead of importing the SQL manually, you can apply the schema (and any future
-incremental migrations) programmatically:
+The module ships a thin convenience wrapper that uses its own
+`payment_engine_migrations` tracker table, so it can share a database with other
+modules without collisions:
 
 ```php
 use Ttpryg\PaymentEngine\Infrastructure\Database\DatabaseMigrator;
@@ -552,17 +466,45 @@ use Ttpryg\PaymentEngine\Infrastructure\Database\DatabaseMigrator;
 $pdo = new PDO('mysql:host=localhost;dbname=app', 'root', 'secret');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-(new DatabaseMigrator($pdo))->migrate();
+$migrator = new DatabaseMigrator($pdo);
+
+// Apply every pending migration. Safe to run repeatedly.
+$executed = $migrator->migrate();
+
+// Inspect what has been applied.
+$applied = $migrator->appliedMigrations();
+
+// Revert the latest migration (or the latest N migrations).
+$rolledBack = $migrator->rollback();
+$rolledBack = $migrator->rollback(2);
 ```
 
-`DatabaseMigrator`:
+You can also use the package runner directly:
 
-- **Fresh install** — runs `database/schema.sql` (the current source of truth)
-  and baselines every migration so it is not re-applied.
-- **Existing database** — runs only the incremental migrations in
-  `database/migrations/` that are not yet recorded, leaving existing data
-  untouched. Applied migrations are tracked in the `payment_engine_migrations`
-  table, so `migrate()` is safe to run repeatedly.
+```php
+use Ttpryg\DatabaseMigrator\MigrationRunner;
+
+$runner = new MigrationRunner(
+    $pdo,
+    __DIR__.'/database/migrations',
+    'payment_engine_migrations'
+);
+
+$runner->migrate();
+```
+
+Notes:
+
+- **No schema snapshot** is maintained in this module; migrations are the only
+  source of truth.
+- Migration files are applied in filename order and recorded in the tracker
+  table only after they succeed.
+- `down()` is provided for both migrations. Rolling back the table migration
+  drops the module's tables, so use it only when data loss is intended.
+- Do not run migrations automatically from application requests; execute them
+  through an explicit deployment or operational step.
+- The DDL and index helpers avoid driver-specific syntax and are exercised
+  against SQLite and MariaDB; the same statements are supported by PostgreSQL.
 
 ---
 
