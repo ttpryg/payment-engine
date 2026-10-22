@@ -15,8 +15,8 @@ use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
 use Ttpryg\PaymentEngine\Domain\Event\PaymentExpiredEvent;
 use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
 
 class PaymentExpirationServiceTest extends TestCase
 {

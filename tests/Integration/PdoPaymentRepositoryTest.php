@@ -21,11 +21,11 @@ use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PaymentNumber;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentAttemptRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentAttemptRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRefundRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoWebhookEventRepository;
 
 class PdoPaymentRepositoryTest extends TestCase
 {

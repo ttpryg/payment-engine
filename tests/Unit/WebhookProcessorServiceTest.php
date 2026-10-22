@@ -17,12 +17,12 @@ use Ttpryg\PaymentEngine\Domain\Event\PaymentCompletedEvent;
 use Ttpryg\PaymentEngine\Domain\Exception\GatewayException;
 use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
-use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentAttemptRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryWebhookEventRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentAttemptRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryWebhookEventRepository;
 
 class WebhookProcessorServiceTest extends TestCase
 {

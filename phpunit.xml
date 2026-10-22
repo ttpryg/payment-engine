@@ -18,6 +18,7 @@
     <source>
         <include>
             <directory suffix=".php">src</directory>
+            <directory suffix=".php">infrastructure</directory>
         </include>
     </source>
 </phpunit>

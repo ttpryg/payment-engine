@@ -15,11 +15,11 @@ use Ttpryg\PaymentEngine\Domain\Event\PaymentRefundedEvent;
 use Ttpryg\PaymentEngine\Domain\Exception\RefundAmountExceededException;
 use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
-use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRefundRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRefundRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
 
 class PaymentRefundServiceTest extends TestCase
 {

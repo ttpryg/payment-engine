@@ -21,9 +21,8 @@ In modern microservices and modular monolithic architectures, handling payments 
 - **Built-in Gateway Drivers**:
   - `MockPaymentGateway`: Predictable driver for unit tests, CI/CD, and local sandboxes.
   - `ManualTransferGateway`: Built-in driver for manual bank transfers, cash on delivery (COD), or offline payments.
-  - `MidtransGateway`: Real Midtrans Snap + Core API driver (sandbox/production) with SHA-512 `signature_key` webhook verification.
-  - `XenditGateway`: Real Xendit Invoice + Refund API driver with constant-time `x-callback-token` webhook verification.
-- **Pluggable HTTP Transport**: Real drivers communicate through the `HttpClientInterface` abstraction (a bundled `CurlHttpClient` is the default), so you can swap in your own client, add retries/logging, or inject a fake without touching the driver.
+- **Bring Your Own Gateway**: Implement `PaymentGatewayInterface` (or extend `AbstractHttpGateway`) to integrate any provider. See [§6](#-6-gateway-driver-architecture).
+- **Pluggable HTTP Transport**: HTTP-based drivers communicate through the `HttpClientInterface` abstraction (a bundled `CurlHttpClient` is available), so you can swap in your own client, add retries/logging, or inject a fake without touching the driver.
 - **Robust Webhook Idempotency**: Prevents duplicate executions, double settlements, or duplicate history entries using gateway `event_id` and SHA-256 `payload_fingerprint`.
 - **Async-Ready Webhook Ingestion**: A recommendation for acknowledging gateways immediately, queueing the raw delivery, and processing status updates/events in a background worker (see [§7.1](#71-asynchronous-webhook-ingestion-recommended)).
 - **Strict State Machine**: Enforces valid status transitions across the entire payment lifecycle (`pending`, `authorized`, `captured`, `completed`, `failed`, `cancelled`, `expired`, `partially_refunded`, `refunded`).
@@ -87,121 +86,225 @@ PENDING ──────┼───────────────> EXPI
 
 ## 🔌 6. Gateway Driver Architecture
 
-To add a new payment gateway (such as Midtrans, Xendit, Stripe, or DOKU), implement `PaymentGatewayInterface`:
+The engine ships without provider-specific integrations. To connect Stripe, DOKU, Midtrans,
+Xendit, or any internal payment provider, implement the `PaymentGatewayInterface` port.
+This keeps provider APIs, credentials, and HTTP details entirely outside the module core.
+
+### 6.1 Implement `PaymentGatewayInterface`
+
+Each driver must translate the engine's domain model to the provider API and map provider
+responses back to engine DTOs:
 
 ```php
-namespace MyNamespace\Gateways;
+namespace App\Payments;
 
-use Ttpryg\PaymentEngine\Contracts\PaymentGatewayInterface;
 use Ttpryg\PaymentEngine\Application\DTO\GatewayResponse;
 use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;
 use Ttpryg\PaymentEngine\Application\DTO\RefundResponse;
 use Ttpryg\PaymentEngine\Application\DTO\WebhookVerificationResult;
+use Ttpryg\PaymentEngine\Contracts\PaymentGatewayInterface;
 use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
 use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 
-class CustomPaymentGateway implements PaymentGatewayInterface
+final class AcmePayGateway implements PaymentGatewayInterface
 {
+    public function __construct(
+        private readonly string $apiKey,
+        private readonly string $webhookSecret,
+    ) {}
+
     public function getName(): string
     {
-        return 'custom';
+        return 'acmepay';
     }
 
     public function createTransaction(Payment $payment, array $options = []): GatewayResponse
     {
-        // Call your gateway API using $payment->totalAmount->amount
+        // Send $payment->paymentNumber and $payment->totalAmount->amount to the provider.
         return new GatewayResponse(
             isSuccessful: true,
-            transactionReference: 'tx_123',
-            redirectUrl: 'https://pay.example.com/checkout/123'
+            transactionReference: 'acme-tx-123',
+            redirectUrl: 'https://pay.acme.test/checkout/acme-tx-123',
+            metadata: ['provider' => 'acmepay'],
+            rawResponse: ['id' => 'acme-tx-123']
         );
     }
 
     public function verifyWebhook(array $payload, array $headers = []): WebhookVerificationResult
     {
-        // Validate the gateway signature/token, then map the status
+        // Always verify the provider signature before trusting the payload.
+        $expected = hash_hmac('sha256', (string) ($payload['raw'] ?? ''), $this->webhookSecret);
+        $provided = (string) ($headers['x-acme-signature'] ?? '');
+
+        if (! hash_equals($expected, $provided)) {
+            return new WebhookVerificationResult(
+                isValid: false,
+                failureReason: 'Invalid AcmePay signature.'
+            );
+        }
+
         return new WebhookVerificationResult(
             isValid: true,
-            transactionReference: $payload['transaction_reference'] ?? null,
-            mappedStatus: \Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus::COMPLETED,
-            paidAmount: new Money((int) $payload['paid_amount'], 'IDR')
+            transactionReference: (string) $payload['transaction_id'],
+            eventId: isset($payload['event_id']) ? (string) $payload['event_id'] : null,
+            mappedStatus: match ($payload['status'] ?? '') {
+                'paid' => PaymentStatus::COMPLETED,
+                'expired' => PaymentStatus::EXPIRED,
+                'failed' => PaymentStatus::FAILED,
+                default => PaymentStatus::PENDING,
+            },
+            paidAmount: isset($payload['paid_amount'])
+                ? new Money((int) $payload['paid_amount'], (string) ($payload['currency'] ?? 'IDR'))
+                : null
         );
     }
 
     public function checkStatus(string $transactionReference): GatewayStatusResponse
     {
-        // Query gateway API
+        // Query the provider and map its status to PaymentStatus.
+        return new GatewayStatusResponse(
+            mappedStatus: PaymentStatus::PENDING,
+            transactionReference: $transactionReference
+        );
     }
 
     public function refund(Payment $payment, Money $amount, ?string $reason = null): RefundResponse
     {
-        // Execute refund API
+        // Call the provider refund API and return its identifier.
+        return new RefundResponse(
+            isSuccessful: true,
+            gatewayRefundId: 'acme-refund-123',
+            refundedAmount: $amount
+        );
     }
 }
 ```
 
-Register drivers using `GatewayManager`:
+### 6.2 Optional: extend `AbstractHttpGateway`
+
+For JSON-over-HTTP providers, extend `AbstractHttpGateway` to reuse request encoding,
+Basic auth, response decoding, and error extraction:
 
 ```php
-$gatewayManager = new GatewayManager();
+namespace App\Payments;
+
+use Ttpryg\PaymentEngine\Application\DTO\GatewayResponse;
+use Ttpryg\PaymentEngine\Contracts\HttpClientInterface;
+use Ttpryg\PaymentEngine\Domain\Entity\Payment;
+use Ttpryg\PaymentEngine\Domain\Exception\GatewayException;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\AbstractHttpGateway;
+
+final class AcmePayGateway extends AbstractHttpGateway
+{
+    public function __construct(
+        private readonly string $apiKey,
+        ?HttpClientInterface $httpClient = null,
+    ) {
+        parent::__construct($httpClient);
+    }
+
+    public function getName(): string
+    {
+        return 'acmepay';
+    }
+
+    public function createTransaction(Payment $payment, array $options = []): GatewayResponse
+    {
+        $response = $this->request(
+            'POST',
+            'https://api.acme.test/v1/transactions',
+            ['Authorization' => $this->basicAuth($this->apiKey)],
+            [
+                'reference' => $payment->paymentNumber->value,
+                'amount' => $payment->totalAmount->amount,
+                'currency' => $payment->totalAmount->currency,
+            ]
+        );
+
+        $data = $this->decode($response);
+
+        if (! $response->isSuccessful()) {
+            throw GatewayException::failed(
+                $this->getName(),
+                $this->extractErrorMessage($data) ?? 'AcmePay transaction creation failed.'
+            );
+        }
+
+        return new GatewayResponse(
+            isSuccessful: true,
+            transactionReference: $this->firstString($data, ['id']),
+            redirectUrl: $this->firstString($data, ['checkout_url']),
+            rawResponse: $data
+        );
+    }
+
+    // verifyWebhook(), checkStatus(), and refund() follow the same pattern.
+}
+```
+
+`AbstractHttpGateway` provides `request()`, `decode()`, `basicAuth()`, `header()`,
+`extractErrorMessage()`, and `firstString()`. See the source for their exact signatures.
+
+### 6.3 Register the driver
+
+```php
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\ManualTransferGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
+
+$gatewayManager = new GatewayManager;
 $gatewayManager->register(new MockPaymentGateway('mock'));
 $gatewayManager->register(new ManualTransferGateway('manual'));
+$gatewayManager->register(new AcmePayGateway(getenv('ACME_API_KEY'), getenv('ACME_WEBHOOK_SECRET')));
 
-// Real drivers (see below)
-$gatewayManager->register(new MidtransGateway(getenv('MIDTRANS_SERVER_KEY')));
-$gatewayManager->register(new XenditGateway(getenv('XENDIT_SECRET_KEY'), getenv('XENDIT_WEBHOOK_TOKEN')));
+// The provider key is matched case-insensitively.
+$gatewayManager->get('acmepay');
 ```
 
-### Built-in Real Gateway Drivers
+Pass the `GatewayManager` to `PaymentService`, `WebhookProcessorService`,
+`PaymentRefundService`, and `GatewayReconciliationService`.
 
-Two production drivers ship with the engine. Both extend `AbstractHttpGateway` and require only credentials; the bundled `CurlHttpClient` is used unless you inject your own `HttpClientInterface`.
+### 6.4 Driver contract checklist
 
-#### Midtrans (`MidtransGateway`)
+- **`getName()`** returns the stable provider key stored on `Payment::$gatewayProvider`.
+- **`createTransaction()`** returns `GatewayResponse`; on success set
+  `transactionReference` to the provider identifier used for status checks and webhooks.
+- **`verifyWebhook()`** returns an invalid `WebhookVerificationResult` (never throws) for
+  bad signatures or missing fields. Return the original `eventId` when the provider sends one,
+  so idempotency can rely on it; otherwise the engine fingerprints the payload.
+- **`checkStatus()`** maps provider states to `PaymentStatus` and returns it in
+  `GatewayStatusResponse::$mappedStatus`. Throw on transport/provider errors; the
+  reconciliation worker catches failures and retries on the next run.
+- **`refund()`** returns `RefundResponse` and must never report success for a failed
+  provider operation.
+- **Amounts** are always integer `Money` values; convert provider decimal amounts carefully.
+- **Security** uses constant-time comparison (`hash_equals`) for signatures/tokens and
+  never logs credentials or raw secrets.
+- **Errors** should use `GatewayException::failed()` from
+  `Ttpryg\PaymentEngine\Domain\Exception` so consumers can catch the module marker
+  interface (`ExceptionInterface`).
+- **Tests** inject a fake `HttpClientInterface` (see `tests/Support/FakeHttpClient.php`)
+  instead of calling the provider network.
+
+### 6.5 Custom HTTP transport
+
+HTTP-based drivers accept an optional `HttpClientInterface`. The bundled `CurlHttpClient`
+requires `ext-curl`; you can also supply your own PSR-18-backed adapter with retries or
+logging:
 
 ```php
-use Ttpryg\PaymentEngine\Gateways\MidtransGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Http\CurlHttpClient;
 
-$midtrans = new MidtransGateway(
-    serverKey: getenv('MIDTRANS_SERVER_KEY'),
-    isProduction: false, // sandbox by default
+$gateway = new AcmePayGateway(
+    apiKey: getenv('ACME_API_KEY'),
+    httpClient: new CurlHttpClient(timeout: 15),
 );
-$gatewayManager->register($midtrans);
 ```
 
-- `createTransaction()` calls the **Snap** API (`/snap/v1/transactions`) and exposes the hosted `redirect_url` plus `snap_token`.
-- `checkStatus()` queries `/v2/{order_id}/status`; the payment number is used as the Midtrans `order_id`.
-- `refund()` calls `/v2/{order_id}/refund` with a generated unique `refund_key`.
-- `verifyWebhook()` validates `signature_key` against `hash('sha512', order_id . status_code . gross_amount . serverKey)` using a **constant-time** comparison. Mapping: `settlement` and `capture` (with `fraud_status = accept`) → `COMPLETED`, `capture` (challenged) → `PENDING`, `deny` → `FAILED`, `cancel` → `CANCELLED`, `expire` → `EXPIRED`, `refund`/`partial_refund` → `REFUNDED`/`PARTIALLY_REFUNDED`.
-
-#### Xendit (`XenditGateway`)
-
-```php
-use Ttpryg\PaymentEngine\Gateways\XenditGateway;
-
-$xendit = new XenditGateway(
-    secretKey: getenv('XENDIT_SECRET_KEY'),
-    webhookToken: getenv('XENDIT_WEBHOOK_TOKEN'),
-);
-$gatewayManager->register($xendit);
-```
-
-- `createTransaction()` creates an invoice via `/v2/invoices`, stores the Xendit `invoice_id` in `payment->metadata['xendit_invoice_id']` (reused for refunds), and returns the `invoice_url`.
-- `checkStatus()` queries `/v2/invoices/{invoice_id}`.
-- `refund()` calls the unified `/refunds` endpoint with the stored `invoice_id`.
-- `verifyWebhook()` performs a **constant-time** (`hash_equals`) comparison of the `x-callback-token` header against the configured `webhookToken`. Mapping: `PAID`/`SETTLED` → `COMPLETED`, `EXPIRED` → `EXPIRED`, `FAILED` → `FAILED`, `PENDING` → `PENDING`.
-- A `PayerReference` whose type is `email` is automatically forwarded as the Xendit `payer_email`.
-
-### Custom HTTP Transport
-
-Every real driver accepts an optional `HttpClientInterface` as its third constructor argument:
-
-```php
-use Ttpryg\PaymentEngine\Http\CurlHttpClient;
-
-$gateway = new MidtransGateway($serverKey, false, new CurlHttpClient(timeout: 15));
-```
-
-Because drivers depend only on the `Ttpryg\PaymentEngine\Contracts\HttpClientInterface` abstraction, you can inject a PSR-18-backed adapter, add retries/logging, or supply a fake client in tests without modifying the driver. Transport failures surface as `GatewayException`.
+Because drivers depend only on the `Ttpryg\PaymentEngine\Contracts\HttpClientInterface`
+abstraction, transport failures can be mapped to `GatewayException` without changing the
+driver and tests can inject a fake client.
 
 ---
 
@@ -241,7 +344,7 @@ Gateway ──HTTP POST──▶ Webhook Endpoint ──enqueue(raw payload)─�
    $payload = json_decode(file_get_contents('php://input'), true, flags: JSON_THROW_ON_ERROR);
 
    $queue->push('payment.webhooks', [
-       'provider' => 'midtrans',
+       'provider' => 'acmepay',
        'payload'  => $payload,
        'headers'  => $requestHeaders,
    ]);
@@ -444,7 +547,7 @@ Instead of importing the SQL manually, you can apply the schema (and any future
 incremental migrations) programmatically:
 
 ```php
-use Ttpryg\PaymentEngine\Database\DatabaseMigrator;
+use Ttpryg\PaymentEngine\Infrastructure\Database\DatabaseMigrator;
 
 $pdo = new PDO('mysql:host=localhost;dbname=app', 'root', 'secret');
 $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -469,14 +572,14 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 use DateTimeImmutable;
 use PDO;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
-use Ttpryg\PaymentEngine\Gateways\ManualTransferGateway;
-use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentAttemptRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\ManualTransferGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentAttemptRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRefundRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoWebhookEventRepository;
 use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentExpirationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;

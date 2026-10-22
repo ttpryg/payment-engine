@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ttpryg\PaymentEngine\Database;
+namespace Ttpryg\PaymentEngine\Infrastructure\Database;
 
 use PDO;
 use RuntimeException;

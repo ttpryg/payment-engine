@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Ttpryg\PaymentEngine\Repositories\Memory;
+namespace Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory;
 
 use DateTimeImmutable;
 use Ttpryg\PaymentEngine\Domain\Entity\Payment;

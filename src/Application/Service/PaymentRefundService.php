@@ -22,7 +22,7 @@ use Ttpryg\PaymentEngine\Domain\Repository\PaymentHistoryRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentRefundRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\Repository\PaymentRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
 
 class PaymentRefundService
 {

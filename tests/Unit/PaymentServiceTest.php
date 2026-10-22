@@ -11,12 +11,12 @@ use Ttpryg\PaymentEngine\Domain\Enum\PaymentMethod;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayerReference;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
-use Ttpryg\PaymentEngine\Gateways\ManualTransferGateway;
-use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentAttemptRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Memory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\ManualTransferGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentAttemptRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
 
 class PaymentServiceTest extends TestCase
 {

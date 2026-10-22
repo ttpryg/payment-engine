@@ -9,6 +9,7 @@ use PDO;
 use PHPUnit\Framework\TestCase;
 use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
 use Ttpryg\EventDispatcher\Provider\ListenerProvider;
+use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;
 use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentRefundService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
@@ -19,20 +20,17 @@ use Ttpryg\PaymentEngine\Domain\Entity\WebhookEvent;
 use Ttpryg\PaymentEngine\Domain\Enum\AttemptStatus;
 use Ttpryg\PaymentEngine\Domain\Enum\PaymentStatus;
 use Ttpryg\PaymentEngine\Domain\Event\PaymentCompletedEvent;
-use Ttpryg\PaymentEngine\Domain\Exception\HttpClientException;
 use Ttpryg\PaymentEngine\Domain\Exception\RefundAmountExceededException;
 use Ttpryg\PaymentEngine\Domain\Repository\WebhookEventRepositoryInterface;
 use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
-use Ttpryg\PaymentEngine\Gateways\GatewayManager;
-use Ttpryg\PaymentEngine\Gateways\MidtransGateway;
-use Ttpryg\PaymentEngine\Gateways\MockPaymentGateway;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentAttemptRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentHistoryRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRefundRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoPaymentRepository;
-use Ttpryg\PaymentEngine\Repositories\Pdo\PdoWebhookEventRepository;
-use Ttpryg\PaymentEngine\Tests\Support\FakeHttpClient;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\GatewayManager;
+use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentAttemptRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentHistoryRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRefundRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoPaymentRepository;
+use Ttpryg\PaymentEngine\Infrastructure\Persistence\Pdo\PdoWebhookEventRepository;
 
 class PaymentEdgeCaseTest extends TestCase
 {
@@ -198,7 +196,7 @@ class PaymentEdgeCaseTest extends TestCase
             id: 'pay-timeout-1',
             paymentNumber: 'PAY-TIMEOUT-1',
             payable: new PayableReference('order', 'ord-timeout-1'),
-            gatewayProvider: 'midtrans',
+            gatewayProvider: 'flaky',
             status: PaymentStatus::PENDING,
             amount: 250000,
             expiresAt: $now->modify('-1 minute')
@@ -207,17 +205,20 @@ class PaymentEdgeCaseTest extends TestCase
         $this->pdoPaymentAttemptRepository->save(new PaymentAttempt(
             id: 'att-timeout-1',
             paymentId: 'pay-timeout-1',
-            gatewayProvider: 'midtrans',
+            gatewayProvider: 'flaky',
             transactionReference: 'PAY-TIMEOUT-1',
             status: AttemptStatus::PENDING,
             amount: new Money(250000, 'IDR')
         ));
 
-        $http = new FakeHttpClient;
-        $http->throwOnNextRequest(HttpClientException::transportError('[28] Operation timed out'));
-
         $gatewayManager = new GatewayManager;
-        $gatewayManager->register(new MidtransGateway('SB-Mid-server-testkey', false, $http));
+        $gatewayManager->register(new class('flaky') extends MockPaymentGateway
+        {
+            public function checkStatus(string $transactionReference): GatewayStatusResponse
+            {
+                throw new \RuntimeException('Gateway transport timed out');
+            }
+        });
 
         $paymentStatusService = new PaymentStatusService(
             $this->pdoPaymentRepository,
@@ -238,7 +239,7 @@ class PaymentEdgeCaseTest extends TestCase
 
         $this->assertCount(0, $reconciled);
         $this->assertSame(PaymentStatus::PENDING, $this->pdoPaymentRepository->findById('pay-timeout-1')?->status);
-        $this->assertSame(AttemptStatus::PENDING, $this->pdoPaymentAttemptRepository->findByTransactionReference('midtrans', 'PAY-TIMEOUT-1')?->status);
+        $this->assertSame(AttemptStatus::PENDING, $this->pdoPaymentAttemptRepository->findByTransactionReference('flaky', 'PAY-TIMEOUT-1')?->status);
         $this->assertCount(0, $this->pdoPaymentHistoryRepository->findByPaymentId('pay-timeout-1'));
     }
 

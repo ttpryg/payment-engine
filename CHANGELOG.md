@@ -21,6 +21,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Repository interfaces moved from `Contracts` to `Domain\Repository`.
 - `Contracts` now only exposes the gateway (`PaymentGatewayInterface`) and HTTP
   (`HttpClientInterface`) ports.
+- Moved concrete infrastructure adapters out of the module core into a sibling
+  `infrastructure/` directory:
+  - `Repositories\Pdo` → `Infrastructure\Persistence\Pdo`
+  - `Repositories\Memory` → `Infrastructure\Persistence\InMemory`
+  - `Gateways` → `Infrastructure\Gateway`
+  - `Http` → `Infrastructure\Http`
+  - `Database` → `Infrastructure\Database`
+- Registered the `Ttpryg\PaymentEngine\Infrastructure\` PSR-4 namespace in
+  `composer.json`.
+- README: replaced the bundled-driver documentation with a step-by-step guide for
+  implementing and registering a custom gateway driver.
+
+### Removed
+
+- Removed the bundled `MidtransGateway` and `XenditGateway` provider-specific drivers
+  (and their dedicated tests). The engine remains provider-agnostic; integrate a
+  provider by implementing `PaymentGatewayInterface` or extending `AbstractHttpGateway`.
 
 ## [1.2.0] - 2026-10-18
 
