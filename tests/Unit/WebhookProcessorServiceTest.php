@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use PHPUnit\Framework\TestCase;
-use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
-use Ttpryg\EventDispatcher\Provider\ListenerProvider;
 use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
 use Ttpryg\PaymentEngine\Application\Service\WebhookProcessorService;
 use Ttpryg\PaymentEngine\Domain\Entity\Payment;
@@ -23,6 +21,7 @@ use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentAttemp
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryWebhookEventRepository;
+use Ttpryg\PaymentEngine\Tests\Support\RecordingEventDispatcher;
 
 class WebhookProcessorServiceTest extends TestCase
 {
@@ -34,7 +33,7 @@ class WebhookProcessorServiceTest extends TestCase
 
     private MemoryWebhookEventRepository $memoryWebhookEventRepository;
 
-    private ListenerProvider $listenerProvider;
+    private RecordingEventDispatcher $eventDispatcher;
 
     private WebhookProcessorService $webhookProcessorService;
 
@@ -48,10 +47,9 @@ class WebhookProcessorServiceTest extends TestCase
         $gatewayManager = new GatewayManager;
         $gatewayManager->register(new MockPaymentGateway('mock'));
 
-        $this->listenerProvider = new ListenerProvider;
-        $eventDispatcher = new EventDispatcher($this->listenerProvider);
+        $this->eventDispatcher = new RecordingEventDispatcher;
 
-        $paymentStatusService = new PaymentStatusService($this->memoryPaymentRepository, $this->memoryPaymentHistoryRepository, $eventDispatcher);
+        $paymentStatusService = new PaymentStatusService($this->memoryPaymentRepository, $this->memoryPaymentHistoryRepository, $this->eventDispatcher);
 
         $this->webhookProcessorService = new WebhookProcessorService(
             $gatewayManager,
@@ -66,7 +64,7 @@ class WebhookProcessorServiceTest extends TestCase
     public function test_process_webhook_and_deduplicate_webhook_execution(): void
     {
         $eventDispatchedCount = 0;
-        $this->listenerProvider->addListener(PaymentCompletedEvent::class, function () use (&$eventDispatchedCount): void {
+        $this->eventDispatcher->addListener(PaymentCompletedEvent::class, function () use (&$eventDispatchedCount): void {
             $eventDispatchedCount++;
         });
 

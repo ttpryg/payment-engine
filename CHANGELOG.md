@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Declared `psr/event-dispatcher` as a direct runtime dependency so the PSR-14
+  contract used by the services is explicit and version-bound, and removed the
+  unused `ttpryg/event-dispatcher` dependency.
 - Added PHPStan level 8 static analysis (`phpstan.neon`) and the `composer analyse`
   and `composer cs-check` scripts; CI now runs static analysis before linting.
 - Entity timestamps (`createdAt` and `updatedAt`) are now non-nullable after

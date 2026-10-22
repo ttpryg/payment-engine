@@ -7,8 +7,6 @@ namespace Ttpryg\PaymentEngine\Tests\Unit;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
-use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
-use Ttpryg\EventDispatcher\Provider\ListenerProvider;
 use Ttpryg\PaymentEngine\Application\DTO\GatewayStatusResponse;
 use Ttpryg\PaymentEngine\Application\Service\GatewayReconciliationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
@@ -23,6 +21,7 @@ use Ttpryg\PaymentEngine\Infrastructure\Gateway\MockPaymentGateway;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentAttemptRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Tests\Support\RecordingEventDispatcher;
 
 class GatewayReconciliationServiceTest extends TestCase
 {
@@ -45,8 +44,7 @@ class GatewayReconciliationServiceTest extends TestCase
         $this->gatewayManager = new GatewayManager;
         $this->gatewayManager->register(new MockPaymentGateway('mock'));
 
-        $listenerProvider = new ListenerProvider;
-        $eventDispatcher = new EventDispatcher($listenerProvider);
+        $eventDispatcher = new RecordingEventDispatcher;
 
         $this->paymentStatusService = new PaymentStatusService(
             $this->memoryPaymentRepository,

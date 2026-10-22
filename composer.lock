@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f1c60dd55423c889a2986d4ca42eddc4",
+    "content-hash": "ec0abe6c352749c7ab95441a4d031ada",
     "packages": [
         {
             "name": "psr/event-dispatcher",
@@ -110,52 +110,6 @@
                 "source": "https://github.com/ttpryg/database-migrator/tree/1.0.0"
             },
             "time": "2026-10-20T13:21:29+00:00"
-        },
-        {
-            "name": "ttpryg/event-dispatcher",
-            "version": "1.0.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/ttpryg/event-dispatcher.git",
-                "reference": "16d777b8ceeacd527061d85d7b7df9035045eddd"
-            },
-            "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/ttpryg/event-dispatcher/zipball/16d777b8ceeacd527061d85d7b7df9035045eddd",
-                "reference": "16d777b8ceeacd527061d85d7b7df9035045eddd",
-                "shasum": ""
-            },
-            "require": {
-                "php": "^8.1",
-                "psr/event-dispatcher": "^1.0"
-            },
-            "require-dev": {
-                "laravel/pint": "^1.20",
-                "phpunit/phpunit": "^10.0",
-                "rector/rector": "^2.6"
-            },
-            "type": "library",
-            "autoload": {
-                "psr-4": {
-                    "Ttpryg\\EventDispatcher\\": "src/"
-                }
-            },
-            "notification-url": "https://packagist.org/downloads/",
-            "license": [
-                "MIT"
-            ],
-            "authors": [
-                {
-                    "name": "Toto",
-                    "email": "totoprayogo1916@gmail.com"
-                }
-            ],
-            "description": "PSR-14 Compliant Event Dispatcher & Listener Provider standalone PHP 8.1+ library",
-            "support": {
-                "issues": "https://github.com/ttpryg/event-dispatcher/issues",
-                "source": "https://github.com/ttpryg/event-dispatcher/tree/1.0.0"
-            },
-            "time": "2026-09-21T14:33:46+00:00"
         }
     ],
     "packages-dev": [

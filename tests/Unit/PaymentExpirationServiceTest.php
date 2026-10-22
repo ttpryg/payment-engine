@@ -6,8 +6,6 @@ namespace Ttpryg\PaymentEngine\Tests\Unit;
 
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
-use Ttpryg\EventDispatcher\Dispatcher\EventDispatcher;
-use Ttpryg\EventDispatcher\Provider\ListenerProvider;
 use Ttpryg\PaymentEngine\Application\Service\PaymentExpirationService;
 use Ttpryg\PaymentEngine\Application\Service\PaymentStatusService;
 use Ttpryg\PaymentEngine\Domain\Entity\Payment;
@@ -17,6 +15,7 @@ use Ttpryg\PaymentEngine\Domain\ValueObject\Money;
 use Ttpryg\PaymentEngine\Domain\ValueObject\PayableReference;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentHistoryRepository;
 use Ttpryg\PaymentEngine\Infrastructure\Persistence\InMemory\MemoryPaymentRepository;
+use Ttpryg\PaymentEngine\Tests\Support\RecordingEventDispatcher;
 
 class PaymentExpirationServiceTest extends TestCase
 {
@@ -31,8 +30,7 @@ class PaymentExpirationServiceTest extends TestCase
         $this->memoryPaymentRepository = new MemoryPaymentRepository;
         $this->memoryPaymentHistoryRepository = new MemoryPaymentHistoryRepository;
 
-        $listenerProvider = new ListenerProvider;
-        $eventDispatcher = new EventDispatcher($listenerProvider);
+        $eventDispatcher = new RecordingEventDispatcher;
 
         $paymentStatusService = new PaymentStatusService(
             $this->memoryPaymentRepository,
@@ -110,11 +108,10 @@ class PaymentExpirationServiceTest extends TestCase
     {
         $expiredEventFired = false;
 
-        $listenerProvider = new ListenerProvider;
-        $listenerProvider->addListener(PaymentExpiredEvent::class, function () use (&$expiredEventFired): void {
+        $eventDispatcher = new RecordingEventDispatcher;
+        $eventDispatcher->addListener(PaymentExpiredEvent::class, function () use (&$expiredEventFired): void {
             $expiredEventFired = true;
         });
-        $eventDispatcher = new EventDispatcher($listenerProvider);
 
         $paymentStatusService = new PaymentStatusService(
             $this->memoryPaymentRepository,
